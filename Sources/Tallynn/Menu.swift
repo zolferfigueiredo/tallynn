@@ -24,14 +24,14 @@ extension AppDelegate {
 
         if let problem {
             let line = switch problem {
-            case .notFound: add("Install the GitHub CLI…", #selector(showSettings))
-            case .signedOut: add("Sign in to GitHub…", #selector(showSettings))
-            case .failed: add("Couldn’t refresh")
+            case .notFound: add(tr("no_gh"), #selector(showSettings))
+            case .signedOut: add(tr("signed_out"), #selector(showSettings))
+            case .failed: add(tr("refresh_failed"))
             }
             line.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: nil)
             menu.addItem(.separator())
         } else if token != nil, shownRepos.isEmpty {
-            add("Choose Repositories…", #selector(showSettings))
+            add(tr("choose"), #selector(showSettings))
             menu.addItem(.separator())
         }
         let places = places
@@ -44,34 +44,34 @@ extension AppDelegate {
                 entry.submenu = versionsMenu(releases[row.repo] ?? [])
             }
             if places.list {
-                let sum = add("TOTAL")
-                sum.attributedTitle = NSAttributedString(string: "TOTAL", attributes: [.font: NSFont.boldSystemFont(ofSize: NSFont.menuFont(ofSize: 0).pointSize)])
+                let sum = add(tr("total_row"))
+                sum.attributedTitle = NSAttributedString(string: tr("total_row"), attributes: [.font: NSFont.boldSystemFont(ofSize: NSFont.menuFont(ofSize: 0).pointSize)])
                 sum.badge = NSMenuItemBadge(string: total(counts).formatted())
             }
             menu.addItem(.separator())
         }
         if let lastRefresh {
-            add("Updated \(lastRefresh.formatted(date: .omitted, time: .shortened))", enabled: false)
+            add(tr("updated", ["time": lastRefresh.formatted(date: .omitted, time: .shortened)]), enabled: false)
         } else if problem == nil, token != nil {
-            add("Counting downloads…", enabled: false)
+            add(tr("counting"), enabled: false)
         }
-        add("Refresh", #selector(refreshNow), enabled: token != nil && !busy, key: "r")
+        add(tr("refresh"), #selector(refreshNow), enabled: token != nil && !busy, key: "r")
         let every = NSMenu()
         for minutes in [5, 10, 30, 60] {
-            let entry = NSMenuItem(title: minutes == 60 ? "1 hour" : "\(minutes) minutes", action: #selector(chooseInterval), keyEquivalent: "")
+            let entry = NSMenuItem(title: minutes == 60 ? tr("hour") : tr("minutes", ["n": minutes]), action: #selector(chooseInterval), keyEquivalent: "")
             entry.target = self
             entry.tag = minutes
             entry.state = defaults.integer(forKey: "interval") == minutes ? .on : .off
             every.addItem(entry)
         }
-        add("Refresh rate").submenu = every
+        add(tr("every")).submenu = every
         menu.addItem(.separator())
 
-        add("Settings…", #selector(showSettings), key: ",").image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
+        add(tr("settings"), #selector(showSettings), key: ",").image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
         let totals = NSMenu()
         totals.autoenablesItems = false
-        for (title, key, on, other) in [("Menu bar", "totalInMenuBar", places.menuBar, places.list),
-                                        ("List", "totalInList", places.list, places.menuBar)] {
+        for (title, key, on, other) in [(tr("menu_bar"), "totalInMenuBar", places.menuBar, places.list),
+                                        (tr("list"), "totalInList", places.list, places.menuBar)] {
             let entry = NSMenuItem(title: title, action: #selector(toggleTotal), keyEquivalent: "")
             entry.target = self
             entry.representedObject = key
@@ -79,18 +79,18 @@ extension AppDelegate {
             entry.isEnabled = !on || other  // the total always shows somewhere
             totals.addItem(entry)
         }
-        add("Total").submenu = totals
+        add(tr("total")).submenu = totals
         menu.addItem(.separator())
 
         // Registering from anywhere else (a build in /tmp) would point the login item at a bundle that disappears.
-        add("Launch at Login", #selector(toggleLogin), on: SMAppService.mainApp.status == .enabled,
+        add(tr("login"), #selector(toggleLogin), on: SMAppService.mainApp.status == .enabled,
             enabled: Bundle.main.bundlePath.hasPrefix("/Applications/"))
-        add("Keep in Dock", #selector(toggleDock), on: inDock())
+        add(tr("dock"), #selector(toggleDock), on: inDock())
         menu.addItem(.separator())
-        add("About Tallynn", #selector(showAbout)).image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: nil)
+        add(tr("about"), #selector(showAbout)).image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: nil)
         menu.addItem(.separator())
         // While an update installs, its step stands in, in plain text that greys out.
-        let check = add(UpdateProgress.underway ?? "Check for updates…", #selector(checkNow), enabled: !checking && UpdateProgress.underway == nil)
+        let check = add(UpdateProgress.underway ?? tr("check"), #selector(checkNow), enabled: !checking && UpdateProgress.underway == nil)
         if let version = availableUpdate, UpdateProgress.underway == nil {
             check.attributedTitle = updateAvailableTitle(version)
             check.image = updateAvailableIcon()
@@ -98,18 +98,18 @@ extension AppDelegate {
             check.image = NSImage(systemSymbolName: "arrow.down.circle", accessibilityDescription: nil)
         }
         let automatic = NSMenu()
-        for (title, every) in [("Daily", 86400), ("Weekly", 604800), ("Never", 0)] {
+        for (title, every) in [(tr("daily"), 86400), (tr("weekly"), 604800), (tr("never"), 0)] {
             let entry = NSMenuItem(title: title, action: #selector(chooseUpdateEvery), keyEquivalent: "")
             entry.target = self
             entry.tag = every
             entry.state = defaults.integer(forKey: "updateEvery") == every ? .on : .off
             automatic.addItem(entry)
         }
-        let auto = add("Check automatically")
+        let auto = add(tr("auto"))
         auto.submenu = automatic
         auto.image = NSImage(size: NSSize(width: 16, height: 16))  // blank, so the title lines up with the icon rows
         menu.addItem(.separator())
-        let quit = add("Quit Tallynn", #selector(NSApplication.terminate), key: "q")
+        let quit = add(tr("quit"), #selector(NSApplication.terminate), key: "q")
         quit.target = NSApp
     }
 
@@ -166,10 +166,10 @@ extension AppDelegate {
     // The restart blinks the screen and the menu bar, so it's asked first.
     @objc func toggleDock() {
         let alert = NSAlert()
-        alert.messageText = "Restart the Dock?"
-        alert.informativeText = "To change this, macOS has to restart the Dock. Your screen and the menu bar will blink for a moment."
-        alert.addButton(withTitle: "Restart Dock")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = tr("dock_restart_title")
+        alert.informativeText = tr("dock_restart_text")
+        alert.addButton(withTitle: tr("dock_restart"))
+        alert.addButton(withTitle: tr("cancel"))
         NSApp.activate()
         if alert.runModal() == .alertFirstButtonReturn { toggleDockTile() }
     }

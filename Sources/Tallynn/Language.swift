@@ -1,0 +1,46 @@
+import Foundation
+
+/// The languages the app speaks, in the website's order.
+nonisolated enum Language: String, CaseIterable {
+    case de, en, es, fr, it, pl, pt, ru, uk, zh, ja, ko
+
+    var name: String {
+        switch self {
+        case .de: "Deutsch"
+        case .en: "English"
+        case .es: "Español"
+        case .fr: "Français"
+        case .it: "Italiano"
+        case .pl: "Polski"
+        case .pt: "Português"
+        case .ru: "Русский"
+        case .uk: "Українська"
+        case .zh: "中文"
+        case .ja: "日本語"
+        case .ko: "한국어"
+        }
+    }
+
+    /// The one picked in Settings, else the Mac's.
+    static var current: Language {
+        UserDefaults.standard.string(forKey: "language").flatMap(Language.init) ?? system
+    }
+
+    /// The first of the Mac's preferred languages the app speaks, else English.
+    static var system: Language {
+        Locale.preferredLanguages.lazy.compactMap { Language(rawValue: String($0.prefix(2)).lowercased()) }.first ?? .en
+    }
+}
+
+/// Every string the app shows, by language and then by key. Each language's table is in Strings/.
+nonisolated enum Strings {
+    static let all: [Language: [String: String]] = [.de: de, .en: en, .es: es, .fr: fr, .it: it, .pl: pl,
+                                                    .pt: pt, .ru: ru, .uk: uk, .zh: zh, .ja: ja, .ko: ko]
+}
+
+/// The string for `key` in the current language, English if that language lacks it, with each {name} filled in.
+nonisolated func tr(_ key: String, _ values: [String: Any] = [:], in language: Language = .current) -> String {
+    var text = Strings.all[language]?[key] ?? Strings.en[key] ?? key
+    for (name, value) in values { text = text.replacingOccurrences(of: "{\(name)}", with: "\(value)") }
+    return text
+}

@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// One window with General (signing in, repositories, Total) and About tabs, in the toolbar like System Settings.
+/// One window with General (signing in, repositories, Total, Language) and About tabs, in the toolbar like System Settings.
 var settingsWindow: NSWindow?
 
 enum SettingsTab: Int { case general, about }
@@ -20,10 +20,10 @@ extension AppDelegate {
         let settings = SettingsModel(app: self)
         let general = NSHostingController(rootView: SettingsView(settings: settings))
         general.sizingOptions = .preferredContentSize  // the window follows each sign-in step's height
-        general.title = "General"
+        general.title = tr("general")
         let about = NSViewController()
         about.view = aboutPage()
-        about.title = "About"
+        about.title = tr("about_tab")
         about.preferredContentSize = about.view.fittingSize
         let tabs = NSTabViewController()
         tabs.tabStyle = .toolbar
@@ -44,6 +44,20 @@ extension AppDelegate {
         window.makeKeyAndOrderFront(nil)
         settingsWindow = window
     }
+
+    /// The tab names and the About page are AppKit, built once, so a new language rebuilds them. The General
+    /// page is SwiftUI and follows on its own.
+    func relabelSettings() {
+        guard let window = settingsWindow, let tabs = window.contentViewController as? NSTabViewController else { return }
+        for (item, key) in zip(tabs.tabViewItems, ["general", "about_tab"]) {
+            item.label = tr(key)
+            item.viewController?.title = tr(key)
+        }
+        let about = tabs.tabViewItems[SettingsTab.about.rawValue].viewController
+        about?.view = aboutPage()
+        about?.preferredContentSize = about?.view.fittingSize ?? .zero
+        window.title = tabs.tabViewItems[tabs.selectedTabViewItemIndex].label
+    }
 }
 
 @Observable final class SettingsModel: NSObject, NSWindowDelegate {
@@ -57,6 +71,7 @@ extension AppDelegate {
     var shown: Set<String> = []
     var totalInMenuBar = true
     var totalInList = false
+    var language = Language.current
     @ObservationIgnored weak var window: NSWindow?
     @ObservationIgnored var signingIn: Task<Void, Never>?
 
@@ -74,6 +89,14 @@ extension AppDelegate {
     }
 
     func loadTotal() { (totalInMenuBar, totalInList) = app.places }
+
+    /// The menu is rebuilt on every open, so only this window needs telling.
+    func setLanguage(_ language: Language) {
+        self.language = language
+        app.defaults.set(language.rawValue, forKey: "language")
+        log.notice("language = \(language.rawValue, privacy: .public)")
+        app.relabelSettings()
+    }
 
     func signedIn(_ login: String) {
         step = .signedIn(login)
@@ -116,7 +139,7 @@ extension AppDelegate {
                 app.reschedule()
                 window?.orderFrontRegardless()  // back in front of the browser
             } else {
-                failure = "Couldn’t sign in to GitHub. Try again."
+                failure = tr("sign_in_failed")
             }
             start()
         }
@@ -150,10 +173,10 @@ extension AppDelegate {
     func signOut() {
         guard case .signedIn(let login) = step, let path = ghPath() else { return }
         let alert = NSAlert()
-        alert.messageText = "Sign out of GitHub?"
-        alert.informativeText = "Tallynn uses the GitHub CLI’s login, so this also signs the GitHub CLI out on this Mac."
-        alert.addButton(withTitle: "Sign Out")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = tr("sign_out_title")
+        alert.informativeText = tr("sign_out_text")
+        alert.addButton(withTitle: tr("sign_out"))
+        alert.addButton(withTitle: tr("cancel"))
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         Task {
             _ = await gh(path, ["auth", "logout", "--hostname", "github.com", "--user", login])
@@ -177,45 +200,52 @@ struct SettingsView: View {
     let settings: SettingsModel
 
     var body: some View {
+        // Read here so a new language redraws every string below.
+        let _ = settings.language
         VStack(alignment: .leading, spacing: 12) {
             switch settings.step {
             case .notFound:
-                Text("Tallynn signs in through the GitHub CLI, which isn’t installed. Install it with Homebrew: brew install gh")
+                Text(tr("no_gh_text"))
                 buttons {
-                    Button("Try Again") { settings.start() }
-                    Button("Get GitHub CLI") { NSWorkspace.shared.open(URL(string: "https://cli.github.com/")!) }
+                    Button(tr("try_again")) { settings.start() }
+                    Button(tr("get_gh")) { NSWorkspace.shared.open(URL(string: "https://cli.github.com/")!) }
                         .keyboardShortcut(.defaultAction)
                 }
             case .signedOut:
-                Text("Sign in with your GitHub account to count the downloads of your public and private repositories.")
+                Text(tr("signed_out_text"))
                 if let failure = settings.failure { Text(failure).foregroundStyle(.red) }
                 buttons {
-                    Button("Sign in with GitHub") { settings.signIn() }.keyboardShortcut(.defaultAction)
+                    Button(tr("sign_in_github")) { settings.signIn() }.keyboardShortcut(.defaultAction)
                 }
             case .signingIn(let code):
                 if let code {
-                    Text("GitHub opened in your browser. Paste this code there, then approve:")
+                    Text(tr("paste_code"))
                     Text(code)
                         .font(.system(size: 28, weight: .semibold, design: .monospaced))
                         .textSelection(.enabled)
-                    Text("It’s already on the clipboard.").foregroundStyle(.secondary)
+                    Text(tr("on_clipboard")).foregroundStyle(.secondary)
                 }
-                waiting("Waiting for GitHub…")
+                waiting(tr("waiting"))
                 buttons {
-                    Button("Cancel") { settings.cancel() }.keyboardShortcut(.cancelAction)
-                    if code != nil { Button("Open GitHub Again") { settings.openGitHubAgain() } }
+                    Button(tr("cancel")) { settings.cancel() }.keyboardShortcut(.cancelAction)
+                    if code != nil { Button(tr("open_again")) { settings.openGitHubAgain() } }
                 }
             case .signedIn(let login):
                 HStack {
-                    Text("Signed in as @\(login)")
+                    Text(tr("signed_in_as", ["login": login]))
                     Spacer()
-                    Button("Sign Out") { settings.signOut() }
+                    Button(tr("sign_out")) { settings.signOut() }
                 }
                 Divider()
                 repositories
                 Divider()
                 total
             }
+            Divider()
+            Picker(tr("language"), selection: Binding(get: { settings.language }, set: { settings.setLanguage($0) })) {
+                ForEach(Language.allCases, id: \.self) { Text($0.name).tag($0) }
+            }
+            .pickerStyle(.menu)
         }
         // A fixed width wraps the text; fixedSize() then makes the window follow each step's height.
         .frame(width: 340, alignment: .leading)
@@ -225,17 +255,17 @@ struct SettingsView: View {
 
     @ViewBuilder var repositories: some View {
         HStack {
-            Text("Repositories").font(.headline)
+            Text(tr("repositories")).font(.headline)
             Spacer()
             Button { settings.loadRepos() } label: { Image(systemName: "arrow.clockwise") }
                 .buttonStyle(.borderless)
-                .help("Reload the list")
+                .help(tr("reload"))
         }
         if let repos = settings.repos {
             if repos.isEmpty {
-                Text("No repositories yet.").foregroundStyle(.secondary)
+                Text(tr("no_repos")).foregroundStyle(.secondary)
             } else {
-                Text("Tick the ones to show in the menu.").foregroundStyle(.secondary)
+                Text(tr("tick")).foregroundStyle(.secondary)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 6) {
                         ForEach(repos, id: \.name) { repo in
@@ -243,7 +273,7 @@ struct SettingsView: View {
                                 HStack(spacing: 4) {
                                     Text(repo.name)
                                     if repo.private {
-                                        Image(systemName: "lock.fill").foregroundStyle(.secondary).accessibilityLabel("Private")
+                                        Image(systemName: "lock.fill").foregroundStyle(.secondary).accessibilityLabel(tr("private"))
                                     }
                                 }
                             }
@@ -256,20 +286,20 @@ struct SettingsView: View {
                 .frame(height: min(CGFloat(repos.count), 12) * 22)
             }
         } else if settings.loadFailed {
-            Text("Couldn’t load your repositories.").foregroundStyle(.red)
-            buttons { Button("Try Again") { settings.loadRepos() } }
+            Text(tr("repos_failed")).foregroundStyle(.red)
+            buttons { Button(tr("try_again")) { settings.loadRepos() } }
         } else {
-            waiting("Loading repositories…")
+            waiting(tr("loading_repos"))
         }
     }
 
     /// Where the total shows, as in the menu's Total submenu. The last place still on can't be turned off.
     @ViewBuilder var total: some View {
-        Text("Total").font(.headline)
-        Toggle("Menu bar", isOn: Binding(get: { settings.totalInMenuBar }, set: { settings.app.setTotal("totalInMenuBar", $0) }))
+        Text(tr("total")).font(.headline)
+        Toggle(tr("menu_bar"), isOn: Binding(get: { settings.totalInMenuBar }, set: { settings.app.setTotal("totalInMenuBar", $0) }))
             .toggleStyle(.checkbox)
             .disabled(settings.totalInMenuBar && !settings.totalInList)
-        Toggle("List", isOn: Binding(get: { settings.totalInList }, set: { settings.app.setTotal("totalInList", $0) }))
+        Toggle(tr("list"), isOn: Binding(get: { settings.totalInList }, set: { settings.app.setTotal("totalInList", $0) }))
             .toggleStyle(.checkbox)
             .disabled(settings.totalInList && !settings.totalInMenuBar)
     }
