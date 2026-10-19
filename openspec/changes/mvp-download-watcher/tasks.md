@@ -36,7 +36,7 @@
 
 ## 7. Icons
 
-- [x] 7.1 Add `Icon/make-icon.swift` drawing the Viru Gate app icon (white gate silhouette with a black door on Estonian blue fading to black, no arrow) into an iconset, and have `run.sh` build `AppIcon.icns` from it as ClaudioStat does; verify the pinned Dock icon and notifications show the art
+- [x] 7.1 Add `Icon/make-icon.swift` drawing the Viru Gate app icon (a gray-gradient gate with a bright rim, a black door and mirrored battlements on Estonian blue fading to black, no arrow) into an iconset, and have `run.sh` build `AppIcon.icns` from it as ClaudioStat does; verify the pinned Dock icon and notifications show the art
 - [x] 7.2 Replace the `arrow.down.circle` placeholder with an 18 pt template silhouette of the same motif; verify it is legible in light and dark menu bars and next to the notch
 
 ## 8. Release build
@@ -51,7 +51,7 @@
 - [x] 9.3 Keep per-release downloads: gh's jq emits `tag<TAB>name<TAB>downloads`, `releaseDownloads` sums installers per release, `repoCounts` derives the counts, and `releases` is saved as JSON next to `counts`; verify the new unit tests pass and the saved releases sum to the logged counts
 - [x] 9.4 Give each repository row a submenu of its releases with downloads (newest first, counts as `NSMenuItemBadge`, zero releases hidden); verify on screen
 - [x] 9.5 Replace the About window with one laid out like BeeHan Brightness's (icon, name, Made by, version, separator, GitHub, Buy me a coffee); verify it opens from About Tallynn and every link works
-- [x] 9.6 Redraw the icons: the app icon as a flat white gate (1.08 size, 0.95 width, on the bottom edge, black door) on Estonian blue fading to black, and the menu bar template without the arrow; verify the Dock and menu bar show them
+- [x] 9.6 Redraw the icons: the app icon as a gray-gradient gate with a bright rim (1.08 size, 0.95 width, on the bottom edge, black door, mirrored battlements) on Estonian blue fading to black, and the menu bar template without the arrow; verify the Dock and menu bar show them
 
 ## 10. Sign in with GitHub and repository choice
 

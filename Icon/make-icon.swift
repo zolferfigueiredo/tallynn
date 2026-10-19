@@ -1,4 +1,4 @@
-// App icon and menu bar icon: Tallinn's Viru Gate in white on Estonian blue fading to black.
+// App icon and menu bar icon: Tallinn's Viru Gate in gray on Estonian blue fading to black.
 // run.sh and build.sh run this: swift Icon/make-icon.swift <output folder>
 // It writes <output>/AppIcon.iconset and the menu bar template <output>/menubar.png and menubar@2x.png.
 import AppKit
@@ -27,58 +27,64 @@ func cone(x: CGFloat, width w: CGFloat, top: CGFloat, height r: CGFloat) -> NSBe
     return path
 }
 
-/// The gate in one color on a 1024-unit canvas: two round towers with cone roofs and the crenellated gateway
-/// between them, its base at y 200. The door is filled with `door`, or cut right through without one.
-func gate(_ color: NSColor, door: NSColor? = nil) -> NSImage {
-    NSImage(size: NSSize(width: 1024, height: 1024), flipped: false) { _ in
-        let shape = rect(372, 200, 652, 500)
-        var x: CGFloat = 372
-        while x + 27.6 <= 652.5 {
-            shape.append(rect(x, 500, x + 27.6, 525))
-            x += 46
-        }
-        for left: CGFloat in [196, 636] {
-            shape.append(rect(left, 200, left + 192, 610))
-            shape.append(cone(x: left, width: 192, top: 610, height: 205))
-        }
-        color.setFill()
-        shape.fill()
-        let arch = rect(450, 200, 574, 392)
-        arch.appendOval(in: NSRect(x: 450, y: 330, width: 124, height: 124))
-        if let door { door.setFill() } else { NSGraphicsContext.current?.compositingOperation = .clear }
-        arch.fill()
-        return true
+/// The gateway's arch on the 1024-unit canvas.
+let doorway: NSBezierPath = {
+    let arch = rect(450, 200, 574, 392)
+    arch.appendOval(in: NSRect(x: 450, y: 330, width: 124, height: 124))
+    return arch
+}()
+
+/// The gate as one outline on the 1024-unit canvas, its base at y 200: two round towers with cone roofs and the
+/// crenellated gateway between them, the doorway cut through.
+let gateOutline: NSBezierPath = {
+    let shape = rect(372, 200, 652, 500)
+    // Five merlons centred on the gate, so the gaps at both towers match.
+    for index in -2...2 {
+        let x = 512 - 13.8 + CGFloat(index) * 46
+        shape.append(rect(x, 500, x + 27.6, 525))
     }
-}
+    for left: CGFloat in [196, 636] {
+        shape.append(rect(left, 200, left + 192, 610))
+        shape.append(cone(x: left, width: 192, top: 610, height: 205))
+    }
+    return NSBezierPath(cgPath: shape.cgPath.normalized().subtracting(doorway.cgPath))
+}()
 
 /// The gate's extent on its canvas.
 let gateBounds = NSRect(x: 176, y: 200, width: 672, height: 615)
 
-/// Draws the gate scaled by `scale` about its centre line, its base at `base`, its width further scaled by `narrow`.
-func place(_ image: NSImage, scale: CGFloat, base: CGFloat, narrow: CGFloat = 1) {
-    let width = gateBounds.width * scale * narrow, height = gateBounds.height * scale
-    image.draw(in: NSRect(x: 512 - width / 2, y: base, width: width, height: height), from: gateBounds,
-               operation: .sourceOver, fraction: 1)
+/// Maps the gate's bounds onto `frame`.
+func fitting(_ frame: NSRect) -> AffineTransform {
+    var transform = AffineTransform(translationByX: frame.minX, byY: frame.minY)
+    transform.scale(x: frame.width / gateBounds.width, y: frame.height / gateBounds.height)
+    transform.translate(x: -gateBounds.minX, y: -gateBounds.minY)
+    return transform
+}
+
+/// A soft glow inside the path's edge: the blurred shadow of everything outside the path, clipped to it. The caster
+/// is drawn far off-canvas and only its shadow comes back. Shadow offsets ignore the current transform, so with the
+/// canvas scaled by `scale` the caster moves `away / scale` units to land `away` device points off.
+func glow(_ path: NSBezierPath, _ color: NSColor, blur: CGFloat, dy: CGFloat = 0, scale: CGFloat) {
+    let away: CGFloat = 100_000
+    NSGraphicsContext.saveGraphicsState()
+    path.addClip()
+    let outside = NSBezierPath(rect: path.bounds.insetBy(dx: -4 * (blur + abs(dy)) / scale, dy: -4 * (blur + abs(dy)) / scale))
+    outside.append(path)
+    outside.windingRule = .evenOdd
+    outside.transform(using: AffineTransform(translationByX: away / scale, byY: 0))
+    let shadow = NSShadow()
+    shadow.shadowColor = color
+    shadow.shadowOffset = NSSize(width: -away, height: dy)
+    shadow.shadowBlurRadius = blur
+    shadow.set()
+    outside.fill()
+    NSGraphicsContext.restoreGraphicsState()
 }
 
 // Soft bevel from ClaudioStat: light glows in from the top edges and shade from the bottom ones.
-func bevel(_ path: NSBezierPath, light: NSColor, dark: NSColor, blur: CGFloat, offset: CGFloat) {
-    let away: CGFloat = 100_000
-    for (color, dy) in [(dark, offset), (light, -offset)] {
-        NSGraphicsContext.saveGraphicsState()
-        path.addClip()
-        let outside = NSBezierPath(rect: path.bounds.insetBy(dx: -4 * (blur + offset), dy: -4 * (blur + offset)))
-        outside.append(path)
-        outside.windingRule = .evenOdd
-        outside.transform(using: AffineTransform(translationByX: away, byY: 0))
-        let glow = NSShadow()
-        glow.shadowColor = color
-        glow.shadowOffset = NSSize(width: -away, height: dy)
-        glow.shadowBlurRadius = blur
-        glow.set()
-        outside.fill()
-        NSGraphicsContext.restoreGraphicsState()
-    }
+func bevel(_ path: NSBezierPath, light: NSColor, dark: NSColor, blur: CGFloat, offset: CGFloat, scale: CGFloat) {
+    glow(path, dark, blur: blur, dy: offset, scale: scale)
+    glow(path, light, blur: blur, dy: -offset, scale: scale)
 }
 
 func bitmap(_ width: Int, _ height: Int, _ draw: () -> Void) -> Data {
@@ -94,17 +100,46 @@ func bitmap(_ width: Int, _ height: Int, _ draw: () -> Void) -> Data {
 func icon(pixels: Int) -> Data {
     bitmap(pixels, pixels) {
         let s = CGFloat(pixels) / 1024
-        // Shadows and bevels are in device space, so their sizes scale by hand.
+        // Shadows are in device space, so their sizes scale by hand.
         NSAffineTransform(transform: AffineTransform(scale: s)).concat()
         // macOS icon grid: an 824-unit rounded square centred in 1024.
         let plate = NSBezierPath(roundedRect: NSRect(x: 100, y: 100, width: 824, height: 824), xRadius: 185, yRadius: 185)
         NSGraphicsContext.saveGraphicsState()
         plate.addClip()
         NSGradient(colors: [black, rgb(0x003E73), blue])!.draw(in: plate, angle: 90)
-        // Flat white: in the Dock, macOS shades it from white to grey and lights the rim on its own.
-        place(gate(.white, door: black), scale: 1.08, base: 100, narrow: 0.95)  // standing on the bottom edge
+
+        // The gate stands on the bottom edge, slightly narrowed.
+        let width = gateBounds.width * 1.08 * 0.95, height = gateBounds.height * 1.08
+        let place = fitting(NSRect(x: 512 - width / 2, y: 100, width: width, height: height))
+        let gate = gateOutline.copy() as! NSBezierPath, door = doorway.copy() as! NSBezierPath
+        gate.transform(using: place)
+        door.transform(using: place)
+
+        NSGraphicsContext.saveGraphicsState()
+        let shadow = NSShadow()
+        shadow.shadowColor = NSColor(white: 0, alpha: 0.45)
+        shadow.shadowOffset = NSSize(width: 0, height: -3 * s)
+        shadow.shadowBlurRadius = 10 * s
+        shadow.set()
+        NSColor.white.setFill()
+        gate.fill()
         NSGraphicsContext.restoreGraphicsState()
-        bevel(plate, light: NSColor(white: 1, alpha: 0.3), dark: NSColor(white: 0, alpha: 0.35), blur: 40 * s, offset: 14 * s)
+        black.setFill()
+        door.fill()
+        NSGradient(colors: [rgb(0x8F949B), rgb(0xB3B7BD), rgb(0xCDD0D5), rgb(0xDCDFE3)], atLocations: [0, 0.35, 0.7, 1],
+                   colorSpace: .sRGB)!.draw(in: gate, angle: 90)
+        // The rim: a crisp bright edge just inside the outline, softened by glows that fade inward.
+        NSGraphicsContext.saveGraphicsState()
+        gate.addClip()
+        NSColor(white: 1, alpha: 0.9).setStroke()
+        gate.lineWidth = 9
+        gate.lineJoinStyle = .round
+        gate.stroke()
+        NSGraphicsContext.restoreGraphicsState()
+        for _ in 0..<3 { glow(gate, .white, blur: 14 * s, scale: s) }
+        NSGraphicsContext.restoreGraphicsState()
+
+        bevel(plate, light: NSColor(white: 1, alpha: 0.3), dark: NSColor(white: 0, alpha: 0.35), blur: 40 * s, offset: 14 * s, scale: s)
     }
 }
 
@@ -115,8 +150,10 @@ func menuBar(scale: Int) -> Data {
     let s = CGFloat(scale), inner = 14 * s
     let width = (inner * gateBounds.width / gateBounds.height).rounded(.up)
     return bitmap(Int(width) + 2 * scale, 18 * scale) {
-        gate(.black).draw(in: NSRect(x: s, y: 3.5 * s, width: width, height: inner), from: gateBounds,
-                          operation: .sourceOver, fraction: 1)
+        let gate = gateOutline.copy() as! NSBezierPath
+        gate.transform(using: fitting(NSRect(x: s, y: 3.5 * s, width: width, height: inner)))
+        NSColor.black.setFill()
+        gate.fill()
     }
 }
 
