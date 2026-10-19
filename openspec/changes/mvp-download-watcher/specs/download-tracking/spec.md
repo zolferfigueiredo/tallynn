@@ -2,35 +2,70 @@
 
 ## Purpose
 
-Keeps an up-to-date download count for each of the logged-in GitHub user's public repositories, counted the same way as the author's existing shell script, and remembers the last counts seen.
+Keeps an up-to-date download count for each repository the signed-in GitHub user chose to show, counted the same way as the author's existing shell script, and remembers the last counts seen.
 
 ## ADDED Requirements
 
-### Requirement: GitHub CLI login
-The app SHALL access GitHub using the GitHub CLI's existing login and SHALL NOT ask for, store or display a token itself.
+### Requirement: Sign in with GitHub
+The app SHALL sign in through the GitHub CLI's browser sign-in (`gh auth login --web`) and SHALL use the CLI's token for every refresh, reading it again each time. It SHALL NOT store, display or log a token. Without the CLI or a login it SHALL NOT refresh.
 
-#### Scenario: gh installed and logged in
-- **WHEN** the GitHub CLI is installed and logged in
-- **THEN** refreshes use that login and succeed without any setup in the app
+#### Scenario: Already signed in to the GitHub CLI
+- **WHEN** the GitHub CLI already has a login when the app starts
+- **THEN** the app uses it at once, with no sign-in step
 
-#### Scenario: gh not installed
+#### Scenario: Sign in
+- **WHEN** the user picks Sign in with GitHub, pastes the copied code on the page that opens and approves
+- **THEN** the GitHub CLI is signed in, the app shows the account and a refresh starts
+
+#### Scenario: Sign-in fails or is cancelled
+- **WHEN** the user cancels in the app, or the GitHub CLI's sign-in fails
+- **THEN** nothing changes and the app offers to sign in again
+
+#### Scenario: Login changed in Terminal
+- **WHEN** the user signs in or switches accounts with the GitHub CLI in Terminal
+- **THEN** the next refresh follows that login
+
+#### Scenario: Sign out
+- **WHEN** the user signs out in Settings and confirms
+- **THEN** the GitHub CLI is signed out on this Mac and the saved counts, releases and last refresh time are cleared, while the chosen repositories are kept
+
+#### Scenario: Token revoked
+- **WHEN** GitHub answers a refresh with 401
+- **THEN** the app shows it is signed out and clears the saved counts
+
+#### Scenario: GitHub CLI missing
 - **WHEN** no GitHub CLI executable is found
-- **THEN** the refresh fails with a "GitHub CLI not found" problem and no counts change
-
-#### Scenario: gh logged out
-- **WHEN** the GitHub CLI is installed but not logged in
-- **THEN** the refresh fails with a "not logged in to GitHub CLI" problem and no counts change
+- **THEN** no request is made and the app says how to install it
 
 ### Requirement: Repository discovery
-On every refresh the app SHALL list the logged-in user's public repositories that are not forks. The username SHALL come from the login, never from the app's code or settings.
+The app SHALL list the signed-in user's own public and private repositories that are not forks, never organization repositories. The account SHALL come from the sign-in, never from the app's code or settings.
 
-#### Scenario: Forks and private repositories excluded
-- **WHEN** the user owns public source repositories, public forks and private repositories
-- **THEN** only the public source repositories are counted
+#### Scenario: Forks and other owners excluded
+- **WHEN** the user owns public and private source repositories and forks, and belongs to an organization
+- **THEN** only the user's own public and private source repositories are listed
 
-#### Scenario: New repository picked up
-- **WHEN** the user creates a new public repository between two refreshes
-- **THEN** the second refresh includes it
+#### Scenario: New repository listed
+- **WHEN** the user creates a repository between two refreshes
+- **THEN** it appears in the list of repositories to choose from
+
+### Requirement: Repository selection
+Only repositories the user ticked in Settings SHALL be counted. A repository not ticked yet, including a new one, SHALL stay hidden. Ticking SHALL start a refresh; unticking SHALL remove the repository at once.
+
+#### Scenario: New repository hidden
+- **WHEN** a new repository appears in the list
+- **THEN** it is not counted or shown until the user ticks it
+
+#### Scenario: Tick and untick
+- **WHEN** the user ticks a repository, then unticks it
+- **THEN** a refresh adds its count, and unticking removes it from the menu and the total without a refresh
+
+#### Scenario: Upgrade from the version without a picker
+- **WHEN** the app first runs with saved counts and no saved choice
+- **THEN** the repositories whose saved counts are above 0 start ticked
+
+#### Scenario: Another account
+- **WHEN** a different GitHub account signs in than the last one
+- **THEN** no repository is ticked and the saved counts are cleared
 
 ### Requirement: Download counting
 A repository's count SHALL be the sum of `download_count` over every asset of every release whose file name ends in `.dmg`, `.exe` or `.zip`. All pages of releases SHALL be included.
@@ -44,7 +79,7 @@ A repository's count SHALL be the sum of `download_count` over every asset of ev
 - **THEN** assets on every page are counted
 
 #### Scenario: Matches the existing script
-- **WHEN** the app and the author's shell script run against the same account at the same time
+- **WHEN** the app shows the same public repositories the author's shell script counts, at the same time
 - **THEN** every repository count and the total are identical
 
 ### Requirement: Downloads per release
@@ -88,7 +123,7 @@ After every successful refresh the app SHALL save each repository's count, and S
 - **THEN** the counts saved before quitting are used for comparison and shown until the first refresh finishes
 
 ### Requirement: Failed refresh keeps last counts
-A refresh that fails for any reason (network, GitHub error, rate limit, gh problem) SHALL leave the saved counts unchanged, SHALL NOT count as a change, and SHALL report the failure.
+A refresh that fails for any reason (network, GitHub error, rate limit) SHALL leave the saved counts unchanged, SHALL NOT count as a change, and SHALL report the failure.
 
 #### Scenario: Offline
 - **WHEN** a refresh runs without network access

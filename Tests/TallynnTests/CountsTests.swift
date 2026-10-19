@@ -1,24 +1,52 @@
+import Foundation
 import Testing
 @testable import Tallynn
 
-@Test func onlyInstallersCountPerRelease() {
-    let gh = """
-    v2.0\tApp.dmg\t300
-    v2.0\tApp.exe\t50
-    v2.0\tApp.zip\t10
-    v2.0\tchecksums.txt\t99
-    v2.0\tApp.dmg.sig\t7
-    v1.0\tApp.dmg\t42
-    v0.9\tnotes.txt\t5
+@Test func onlyInstallersCountPerRelease() throws {
+    let json = """
+    [{"tag_name": "v2.0", "assets": [{"name": "App.dmg", "download_count": 300}, {"name": "App.exe", "download_count": 50},
+                                     {"name": "App.zip", "download_count": 10}, {"name": "checksums.txt", "download_count": 99},
+                                     {"name": "App.dmg.sig", "download_count": 7}]},
+     {"tag_name": "v1.0", "assets": [{"name": "App.dmg", "download_count": 42}]},
+     {"tag_name": "v0.9", "assets": [{"name": "notes.txt", "download_count": 5}]}]
     """
-    #expect(releaseDownloads(gh) == [Release(tag: "v2.0", downloads: 360), Release(tag: "v1.0", downloads: 42),
-                                     Release(tag: "v0.9", downloads: 0)])
-    #expect(releaseDownloads("").isEmpty)
+    let releases: [GitHubRelease] = try decode(Data(json.utf8))
+    #expect(releaseDownloads(releases) == [Release(tag: "v2.0", downloads: 360), Release(tag: "v1.0", downloads: 42),
+                                           Release(tag: "v0.9", downloads: 0)])
+    #expect(releaseDownloads([]).isEmpty)
 }
 
 @Test func repoCountIsTheSumOfItsReleases() {
     let releases = ["theej": [Release(tag: "v2", downloads: 300), Release(tag: "v1", downloads: 62)], "weej": []]
     #expect(repoCounts(releases) == ["theej": 362, "weej": 0])
+}
+
+@Test func nextPageFromLinkHeader() {
+    let both = #"<https://api.github.com/user/repos?page=2>; rel="next", <https://api.github.com/user/repos?page=5>; rel="last""#
+    #expect(nextPage(both) == URL(string: "https://api.github.com/user/repos?page=2"))
+    let last = #"<https://api.github.com/user/repos?page=4>; rel="prev", <https://api.github.com/user/repos?page=1>; rel="first""#
+    #expect(nextPage(last) == nil)
+    #expect(nextPage(nil) == nil)
+}
+
+@Test func readsTheGitHubCLILoginPrompt() {
+    let code = loginPrompt("! One-time code (AB12-CD34) copied to clipboard")
+    #expect(code.code == "AB12-CD34" && code.url == nil)
+    let page = loginPrompt("Open this URL to continue in your web browser: https://github.com/login/device")
+    #expect(page.code == nil && page.url == URL(string: "https://github.com/login/device"))
+    #expect(loginPrompt("✓ Authentication complete.").code == nil)
+}
+
+@Test func forksAreLeftOutAndSortedLikeFinder() throws {
+    let json = """
+    [{"name": "weej", "full_name": "z/weej", "private": false, "fork": false},
+     {"name": "someone-else", "full_name": "z/someone-else", "private": false, "fork": true},
+     {"name": "app10", "full_name": "z/app10", "private": true, "fork": false},
+     {"name": "App2", "full_name": "z/App2", "private": false, "fork": false}]
+    """
+    let repos: [Repo] = try decode(Data(json.utf8))
+    #expect(sourceRepos(repos).map(\.name) == ["App2", "app10", "weej"])
+    #expect(sourceRepos(repos)[1].private)
 }
 
 @Test func totalOfRepositories() {
@@ -48,8 +76,12 @@ import Testing
     #expect(notificationBody(changes(old: ["claudiostat": 430], new: ["claudiostat": 400])) == "claudiostat -30 (400)")
 }
 
-@Test func newRepositoryCountsFromZero() {
-    #expect(notificationBody(changes(old: ["theej": 361], new: ["theej": 361, "newapp": 2])) == "newapp +2 (2)")
+@Test func newlyShownRepositoryIsABaseline() {
+    #expect(changes(old: ["theej": 361], new: ["theej": 361, "newapp": 250]).isEmpty)
+}
+
+@Test func firstDownloadOfAShownRepository() {
+    #expect(notificationBody(changes(old: ["newapp": 0], new: ["newapp": 1])) == "newapp +1 (1)")
 }
 
 @Test func droppedRepositoryIsSilent() {
@@ -59,4 +91,15 @@ import Testing
 @Test func menuHidesZerosAndSortsAlphabetically() {
     let rows = menuRows(["theej": 361, "weej": 16, "wrecktangle": 34, "claudiostat": 430, "bhbrightness": 270, "zolferfigueiredo": 0, "App2": 1, "app10": 1])
     #expect(rows.map(\.repo) == ["App2", "app10", "bhbrightness", "claudiostat", "theej", "weej", "wrecktangle"])
+}
+
+@Test func migrationShowsReposWithDownloads() {
+    #expect(migratedShownRepos(["theej": 362, "weej": 16, "zolferfigueiredo": 0]) == ["theej", "weej"])
+    #expect(migratedShownRepos(nil).isEmpty)
+}
+
+@Test(arguments: [(true, false, true, false), (true, true, true, true), (false, true, false, true), (false, false, true, false)])
+func totalAlwaysShowsSomewhere(menuBar: Bool, list: Bool, inBar: Bool, inList: Bool) {
+    let places = totalPlaces(menuBar: menuBar, list: list)
+    #expect(places.menuBar == inBar && places.list == inList)
 }
