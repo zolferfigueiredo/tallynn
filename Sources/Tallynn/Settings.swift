@@ -4,9 +4,6 @@ import SwiftUI
 /// Signing in and picking repositories. Built like ClaudioStat's setup window.
 var settingsWindow: NSWindow?
 
-/// The OAuth app's client ID. Public by design: the device flow needs no secret.
-let clientID = Bundle.main.object(forInfoDictionaryKey: "GitHubClientID") as? String ?? ""
-
 extension AppDelegate {
     @objc func showSettings() {
         NSApp.activate()
@@ -29,7 +26,7 @@ extension AppDelegate {
 }
 
 @Observable final class SettingsModel: NSObject, NSWindowDelegate {
-    enum Step { case signedOut, starting, waiting(DeviceCode), signedIn(String) }
+    enum Step { case notFound, signedOut, signingIn(code: String?), signedIn(String) }
 
     let app: AppDelegate
     var step = Step.signedOut
@@ -46,54 +43,62 @@ extension AppDelegate {
 
     func start() {
         shown = app.shownRepos
-        guard app.token != nil else { return }
-        step = .signedIn(app.defaults.string(forKey: "login") ?? "GitHub")
+        if app.token != nil { return signedIn(app.defaults.string(forKey: "login") ?? "GitHub") }
+        guard signingIn == nil else { return }
+        repos = nil
+        step = ghPath() == nil ? .notFound : .signedOut
+    }
+
+    func signedIn(_ login: String) {
+        step = .signedIn(login)
+        shown = app.shownRepos
         loadRepos()
     }
 
+    /// Runs the GitHub CLI's browser sign-in, as ClaudioStat runs Claude Code's. gh copies its one-time code to the
+    /// clipboard and names the page; Tallynn opens it and waits for gh to finish.
     func signIn() {
-        guard signingIn == nil else { return }
+        guard signingIn == nil, let path = ghPath() else { return start() }
         failure = nil
-        step = .starting
+        step = .signingIn(code: nil)
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: path)
+        process.arguments = ["auth", "login", "--web", "--hostname", "github.com", "--git-protocol", "https"]
+        let prompt = Pipe()
+        process.standardOutput = prompt
+        process.standardError = prompt
+        process.standardInput = FileHandle.nullDevice
         signingIn = Task {
-            defer { signingIn = nil }
-            do {
-                let code = try await requestDeviceCode(clientID: clientID)
-                step = .waiting(code)
-                let token = try await pollForToken(clientID: clientID, code: code)
-                let login = try await fetchLogin(token: token)
-                guard app.signedIn(token: token, login: login) else {
-                    step = .signedOut
-                    failure = "Couldn’t save the sign-in in the Keychain."
-                    return
+            let reading = Task {
+                var opened = false
+                for try await line in prompt.fileHandleForReading.bytes.lines {
+                    let found = loginPrompt(line)
+                    if let code = found.code { step = .signingIn(code: code) }
+                    if let url = found.url, !opened {
+                        opened = true
+                        NSWorkspace.shared.open(url)
+                    }
                 }
-                step = .signedIn(login)
-                shown = app.shownRepos
-                loadRepos()
-                window?.orderFrontRegardless()  // back in front of the browser
-            } catch {
-                step = .signedOut
-                if !Task.isCancelled { failure = message(error) }
             }
-        }
-    }
-
-    func message(_ error: Error) -> String {
-        switch error as? SignInError {
-        case .denied: "Sign-in was cancelled on GitHub."
-        case .expired: "The code expired. Sign in again for a new one."
-        case .disabled: "Device Flow is off for the OAuth app. Tick Enable Device Flow in its settings on GitHub."
-        default: "Couldn’t sign in to GitHub. Check your connection and try again."
+            let status = await exitStatus(process)
+            reading.cancel()
+            signingIn = nil
+            guard !Task.isCancelled else { return start() }
+            if status == 0 {
+                await app.connect()
+                app.render()
+                app.reschedule()
+                window?.orderFrontRegardless()  // back in front of the browser
+            } else {
+                failure = "Couldn’t sign in to GitHub. Try again."
+            }
+            start()
         }
     }
 
     func cancel() { signingIn?.cancel() }
 
-    func copyAndOpen(_ code: DeviceCode) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(code.userCode, forType: .string)
-        NSWorkspace.shared.open(code.verificationUri)
-    }
+    func openGitHubAgain() { NSWorkspace.shared.open(URL(string: "https://github.com/login/device")!) }
 
     func loadRepos() {
         guard let token = app.token else { return }
@@ -103,7 +108,7 @@ extension AppDelegate {
             do {
                 repos = try await fetchRepos(token: token)
             } catch Problem.signedOut {
-                app.signOut()
+                app.disconnect(.signedOut)
             } catch {
                 loadFailed = true
             }
@@ -115,9 +120,20 @@ extension AppDelegate {
         app.show(repo, on)
     }
 
+    /// Like removing a profile in ClaudioStat, which signs Claude Code out too: asked first.
     func signOut() {
-        app.signOut()
-        repos = nil
+        guard case .signedIn(let login) = step, let path = ghPath() else { return }
+        let alert = NSAlert()
+        alert.messageText = "Sign out of GitHub?"
+        alert.informativeText = "Tallynn uses the GitHub CLI’s login, so this also signs the GitHub CLI out on this Mac."
+        alert.addButton(withTitle: "Sign Out")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        Task {
+            _ = await gh(path, ["auth", "logout", "--hostname", "github.com", "--user", login])
+            app.disconnect(.signedOut)
+            app.render()
+        }
     }
 
     func windowWillClose(_ notification: Notification) { cancel() }
@@ -133,29 +149,31 @@ struct SettingsView: View {
                 .frame(width: 64, height: 64)
             VStack(alignment: .leading, spacing: 12) {
                 switch settings.step {
+                case .notFound:
+                    Text("Tallynn signs in through the GitHub CLI, which isn’t installed. Install it with Homebrew: brew install gh")
+                    buttons {
+                        Button("Try Again") { settings.start() }
+                        Button("Get GitHub CLI") { NSWorkspace.shared.open(URL(string: "https://cli.github.com/")!) }
+                            .keyboardShortcut(.defaultAction)
+                    }
                 case .signedOut:
                     Text("Sign in with your GitHub account to count the downloads of your public and private repositories.")
-                    if clientID.isEmpty {
-                        Text("First add your OAuth app’s Client ID to Info.plist as GitHubClientID.").foregroundStyle(.secondary)
-                    }
                     if let failure = settings.failure { Text(failure).foregroundStyle(.red) }
                     buttons {
-                        Button("Sign in with GitHub") { settings.signIn() }
-                            .keyboardShortcut(.defaultAction)
-                            .disabled(clientID.isEmpty)
+                        Button("Sign in with GitHub") { settings.signIn() }.keyboardShortcut(.defaultAction)
                     }
-                case .starting:
-                    waiting("Asking GitHub for a code…")
-                    buttons { Button("Cancel") { settings.cancel() }.keyboardShortcut(.cancelAction) }
-                case .waiting(let code):
-                    Text("Enter this code on GitHub:")
-                    Text(code.userCode)
-                        .font(.system(size: 28, weight: .semibold, design: .monospaced))
-                        .textSelection(.enabled)
+                case .signingIn(let code):
+                    if let code {
+                        Text("GitHub opened in your browser. Paste this code there, then approve:")
+                        Text(code)
+                            .font(.system(size: 28, weight: .semibold, design: .monospaced))
+                            .textSelection(.enabled)
+                        Text("It’s already on the clipboard.").foregroundStyle(.secondary)
+                    }
                     waiting("Waiting for GitHub…")
                     buttons {
                         Button("Cancel") { settings.cancel() }.keyboardShortcut(.cancelAction)
-                        Button("Copy Code & Open GitHub") { settings.copyAndOpen(code) }.keyboardShortcut(.defaultAction)
+                        if code != nil { Button("Open GitHub Again") { settings.openGitHubAgain() } }
                     }
                 case .signedIn(let login):
                     HStack {

@@ -1,15 +1,9 @@
 import Foundation
 
 nonisolated enum Problem: Error, Sendable {
-    case signedOut  // no token, or GitHub no longer accepts it
+    case notFound   // no GitHub CLI, which Tallynn signs in through
+    case signedOut  // the GitHub CLI has no login, or GitHub no longer accepts it
     case failed     // network, GitHub or rate limit
-}
-
-nonisolated enum SignInError: Error, Sendable {
-    case denied    // the user cancelled on github.com
-    case expired   // the code timed out
-    case disabled  // the OAuth app doesn't have Enable Device Flow ticked
-    case failed
 }
 
 nonisolated struct Repo: Decodable, Equatable, Sendable {
@@ -28,16 +22,7 @@ nonisolated struct GitHubRelease: Decodable, Sendable {
     let assets: [Asset]
 }
 
-nonisolated struct DeviceCode: Decodable, Sendable {
-    let deviceCode: String
-    let userCode: String
-    let verificationUri: URL
-    let expiresIn: Int
-    let interval: Int
-}
-
 nonisolated private struct User: Decodable { let login: String }
-nonisolated private struct Reply: Decodable { let accessToken: String?; let error: String?; let interval: Int? }
 
 nonisolated func decode<T: Decodable>(_ data: Data) throws -> T {
     let decoder = JSONDecoder()
@@ -115,45 +100,53 @@ nonisolated let session: URLSession = {
     }
 }
 
-/// A form POST to github.com's OAuth endpoints. Without the Accept header GitHub answers form-encoded.
-@concurrent nonisolated private func post(_ url: String, _ form: [String: String]) async throws -> Data {
-    var request = URLRequest(url: URL(string: url)!)
-    request.httpMethod = "POST"
-    request.setValue("application/json", forHTTPHeaderField: "Accept")
-    request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-    var body = URLComponents()
-    body.queryItems = form.map { URLQueryItem(name: $0.key, value: $0.value) }
-    request.httpBody = Data((body.percentEncodedQuery ?? "").utf8)
-    return try await session.data(for: request).0
+// Like ClaudioStat with Claude Code, Tallynn never keeps a credential: the GitHub CLI signs in, stores the token in
+// its own keychain item, and hands it over on each refresh.
+
+/// Apps opened from Finder get launchd's PATH, which has no Homebrew, so gh is looked for where Homebrew puts it.
+// ponytail: fixed paths; ask the login shell for PATH if gh ever lives elsewhere.
+nonisolated func ghPath() -> String? {
+    ["/opt/homebrew/bin/gh", "/usr/local/bin/gh"].first(where: FileManager.default.isExecutableFile(atPath:))
 }
 
-/// Starts the device flow. `repo` is the only scope that reaches private repositories; Tallynn only reads with it.
-@concurrent nonisolated func requestDeviceCode(clientID: String) async throws -> DeviceCode {
-    let data = try await post("https://github.com/login/device/code", ["client_id": clientID, "scope": "repo"])
-    if let code: DeviceCode = try? decode(data) { return code }
-    throw (try? decode(data) as Reply)?.error == "device_flow_disabled" ? SignInError.disabled : SignInError.failed
+/// gh's output, or nil when it can't start or exits with an error.
+@concurrent nonisolated func gh(_ path: String, _ arguments: [String]) async -> String? {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: path)
+    process.arguments = arguments
+    let output = Pipe()
+    process.standardOutput = output
+    process.standardError = FileHandle.nullDevice
+    do { try process.run() } catch { return nil }
+    // Read before waiting: a full pipe would block gh from exiting.
+    let data = output.fileHandleForReading.readDataToEndOfFile()
+    process.waitUntilExit()
+    return process.terminationStatus == 0 ? String(decoding: data, as: UTF8.self) : nil
 }
 
-/// Waits for the user to enter the code on github.com, then returns the token. Cancelling the task stops it.
-@concurrent nonisolated func pollForToken(clientID: String, code: DeviceCode) async throws -> String {
-    var interval = code.interval
-    let deadline = Date.now.addingTimeInterval(TimeInterval(code.expiresIn))
-    while Date.now < deadline {
-        try await Task.sleep(for: .seconds(interval))
-        // A failed poll (offline for a moment) just waits for the next one, until the code expires.
-        guard let data = try? await post("https://github.com/login/oauth/access_token",
-                                         ["client_id": clientID, "device_code": code.deviceCode,
-                                          "grant_type": "urn:ietf:params:oauth:grant-type:device_code"]),
-              let reply: Reply = try? decode(data) else { continue }
-        if let token = reply.accessToken { return token }
-        switch reply.error {
-        case "authorization_pending": continue
-        case "slow_down": interval = reply.interval ?? interval + 5
-        case "access_denied": throw SignInError.denied
-        case "expired_token": throw SignInError.expired
-        case "device_flow_disabled": throw SignInError.disabled
-        default: throw SignInError.failed
+/// The GitHub CLI's current token. `auth token` only reads the local login, so being offline isn't mistaken for
+/// being signed out.
+@concurrent nonisolated func ghToken(_ path: String) async -> String? {
+    let token = await gh(path, ["auth", "token", "--hostname", "github.com"])?.trimmingCharacters(in: .whitespacesAndNewlines)
+    return token?.isEmpty == false ? token : nil
+}
+
+/// What `gh auth login --web` prints without a terminal: "! One-time code (ABCD-1234) copied to clipboard", then
+/// "Open this URL to continue in your web browser: https://github.com/login/device".
+nonisolated func loginPrompt(_ line: String) -> (code: String?, url: URL?) {
+    let code = line.firstMatch(of: /\(([A-Z0-9]{4}-[A-Z0-9]{4})\)/).map { String($0.1) }
+    let url = line.firstMatch(of: /https:\/\/\S+/).flatMap { URL(string: String($0.0)) }
+    return (code, url)
+}
+
+/// Returns once the process has exited, with its status. Cancelling the task stops it.
+nonisolated func exitStatus(_ process: Process) async -> Int32 {
+    await withTaskCancellationHandler {
+        await withCheckedContinuation { done in
+            process.terminationHandler = { done.resume(returning: $0.terminationStatus) }
+            do { try process.run() } catch { done.resume(returning: -1) }
         }
+    } onCancel: {
+        process.terminate()
     }
-    throw SignInError.expired
 }

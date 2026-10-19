@@ -7,8 +7,8 @@ context: |
   LSUIElement, optional "Keep in Dock" pin, and opening the app again (Dock click)
   pops the menu up at the pointer.
   Follow ~/www/claudiostat conventions: SwiftPM, AppKit NSStatusItem, run.sh/build.sh.
-  Signs in with the GitHub OAuth device flow (public client ID in Info.plist, token
-  only in the login Keychain); no gh CLI. No third-party dependencies.
+  Signs in through the GitHub CLI (gh auth login --web), as ClaudioStat does
+  through Claude Code: Tallynn never stores a token. No third-party dependencies.
 
 # Project context (optional)
 # Add only constraints that should guide OpenSpec artifacts and workflows.

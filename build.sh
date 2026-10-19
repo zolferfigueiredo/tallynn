@@ -25,10 +25,7 @@ cp Info.plist "$APP/Contents/"
 swift -module-cache-path "$WORK/modules" Icon/make-icon.swift "$WORK/art"
 iconutil -c icns "$WORK/art/AppIcon.iconset" -o "$APP/Contents/Resources/AppIcon.icns"
 tiffutil -cathidpicheck "$WORK/art/menubar.png" "$WORK/art/menubar@2x.png" -out "$APP/Contents/Resources/MenuBar.tiff"
-# A stable signature keeps the Keychain from asking for the GitHub token again after every build, so the first
-# Developer ID identity signs the app unless SIGN_ID names another. Without one it is signed ad hoc.
-SIGN_ID=${SIGN_ID:-$(security find-identity -v -p codesigning | awk -F'"' '/Developer ID Application/ { print $2; exit }')}
-# Notarization requires the hardened runtime and a secure timestamp.
+# Notarization requires the hardened runtime and a secure timestamp. Without SIGN_ID the app is signed ad hoc.
 codesign --force --options runtime ${SIGN_ID:+--timestamp} --sign "${SIGN_ID:--}" "$APP"
 codesign --verify --strict "$APP"
 echo "Built $(pwd)/$APP"

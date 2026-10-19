@@ -7,7 +7,7 @@ Release download counts are checked today with a shell script that is run by han
 ## What Changes
 
 - New macOS menu bar app, **Tallynn**: no running Dock indicator; behaves like ClaudioStat and Deploydz. Its only windows are Settings and About, opened on request.
-- Signs in with GitHub through the OAuth device flow (a short code entered on github.com); the token lives only in the login Keychain. No gh CLI, no password, no client secret.
+- Signs in with GitHub through the GitHub CLI's browser sign-in (`gh auth login --web`), as ClaudioStat signs in through Claude Code: Tallynn never stores a token, and follows the CLI's login.
 - Settings lists the user's own public and private repositories (no forks, no organization repositories) to tick; new ones stay hidden until ticked, and an upgrade starts with the repositories that had downloads.
 - Counts downloads like the author's script: per repository and per release, summing release assets whose names end in `.dmg`, `.exe` or `.zip`.
 - Refreshes every 5, 10, 30 or 60 minutes (user's choice) and on Refresh.
@@ -27,7 +27,7 @@ Release download counts are checked today with a shell script that is run by han
 
 ## Impact
 
-- New SwiftPM package (Swift 6, macOS 26) with AppKit, SwiftUI, Security, UserNotifications and ServiceManagement only; `run.sh`/`build.sh` produce `Tallynn.app` signed with the Developer ID identity when there is one, following `~/www/claudiostat`.
-- A GitHub OAuth app, registered once by the author with Enable Device Flow ticked; its client ID goes in Info.plist. The `repo` scope it asks for is the only one that reaches private repositories and also allows writing; Tallynn only reads.
+- New SwiftPM package (Swift 6, macOS 26) with AppKit, SwiftUI, UserNotifications and ServiceManagement only; `run.sh`/`build.sh` produce an ad hoc signed `Tallynn.app`, following `~/www/claudiostat`.
+- Runtime dependency on the GitHub CLI (`gh`), installed with Homebrew. Its default login scopes include `repo`, which reaches private repositories; Tallynn only reads.
 - About 1 + N GitHub API requests per refresh for N shown repositories, well within the 5,000/hour authenticated limit.
 - Personal, locally built app: DMG packaging, notarization, auto-update and localization are out of scope.

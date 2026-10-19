@@ -29,6 +29,14 @@ import Testing
     #expect(nextPage(nil) == nil)
 }
 
+@Test func readsTheGitHubCLILoginPrompt() {
+    let code = loginPrompt("! One-time code (AB12-CD34) copied to clipboard")
+    #expect(code.code == "AB12-CD34" && code.url == nil)
+    let page = loginPrompt("Open this URL to continue in your web browser: https://github.com/login/device")
+    #expect(page.code == nil && page.url == URL(string: "https://github.com/login/device"))
+    #expect(loginPrompt("✓ Authentication complete.").code == nil)
+}
+
 @Test func forksAreLeftOutAndSortedLikeFinder() throws {
     let json = """
     [{"name": "weej", "full_name": "z/weej", "private": false, "fork": false},

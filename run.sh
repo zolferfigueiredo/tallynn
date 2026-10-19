@@ -22,10 +22,7 @@ if [ -f Icon/make-icon.swift ]; then
     iconutil -c icns "$WORK/art/AppIcon.iconset" -o "$APP/Contents/Resources/AppIcon.icns"
     tiffutil -cathidpicheck "$WORK/art/menubar.png" "$WORK/art/menubar@2x.png" -out "$APP/Contents/Resources/MenuBar.tiff"
 fi
-# A stable signature keeps the Keychain from asking for the GitHub token again after every build, so the first
-# Developer ID identity signs the app unless SIGN_ID names another. Without one it is signed ad hoc.
-SIGN_ID=${SIGN_ID:-$(security find-identity -v -p codesigning | awk -F'"' '/Developer ID Application/ { print $2; exit }')}
-codesign --force --sign "${SIGN_ID:--}" "$APP"
+codesign --force --sign - "$APP"
 
 # Same bundle id as an installed copy: while it runs, open would just bring that one forward.
 pkill -ix -U "$(id -u)" tallynn || true

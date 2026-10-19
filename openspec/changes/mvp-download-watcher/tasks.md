@@ -55,15 +55,15 @@
 
 ## 10. Sign in with GitHub and repository choice
 
-- [x] 10.1 Add pure functions and tests: `releaseDownloads` on decoded release JSON, `nextPage` for `Link` headers, `sourceRepos` (no forks, Finder order), the silent-baseline `changes`, `migratedShownRepos`, `totalPlaces`; verify `swift test` passes
-- [x] 10.2 Rewrite `GitHub.swift` as a REST client on an ephemeral, cache-free `URLSession` (`/user`, `/user/repos`, releases, `Link` pagination, 401 as signed out) with the OAuth device flow (`requestDeviceCode`, `pollForToken`), deleting every use of gh; verify `swift build` succeeds and no gh call is left in `Sources`
-- [ ] 10.3 Add `Keychain.swift` keeping the token as one generic password in the login keychain; verify after a real sign-in that Keychain Access shows `com.zolfer.tallynn` and that `gho_` appears in neither `defaults read com.zolfer.tallynn` nor the app's log
+- [x] 10.1 Add pure functions and tests: `releaseDownloads` on decoded release JSON, `nextPage` for `Link` headers, `sourceRepos` (no forks, Finder order), the silent-baseline `changes`, `migratedShownRepos`, `totalPlaces`, `loginPrompt` for gh's sign-in output; verify `swift test` passes
+- [x] 10.2 Rewrite `GitHub.swift` as a REST client on an ephemeral, cache-free `URLSession` (`/user`, `/user/repos`, releases, `Link` pagination, 401 as signed out) using the GitHub CLI's token from `gh auth token`; verify `swift build` succeeds and a refresh logs the same counts as before
+- [ ] 10.3 Sign in through `gh auth login --web` like ClaudioStat through Claude Code: show the code gh copied, open the device page, wait for gh, follow the CLI's login on every refresh, and sign out with `gh auth logout` after asking; verify a sign-in from a signed-out CLI, a Terminal `gh auth switch` being followed, and that no token appears in `defaults read com.zolfer.tallynn` or the app's log
 - [x] 10.4 Migrate `shownRepos` from the saved counts at launch; verify `defaults read com.zolfer.tallynn shownRepos` lists the repositories that had downloads
-- [ ] 10.5 Hold the token in memory and handle sign in, sign out (clears counts, releases, last refresh; keeps picks), another account (clears picks), stale results and ticks during a refresh; verify with a real sign-in that the first refresh notifies nothing and Sign Out clears the keys and the Keychain item
-- [ ] 10.6 Add the Settings window (`Settings.swift`, like ClaudioStat's setup window): sign in with the code, Copy Code & Open GitHub, Cancel, Sign Out, and the repository checkboxes with locks and reload; verify on screen that it opens at launch while signed out and that ticking a private repository adds it to the menu without a notification
-- [ ] 10.7 Update the menu: Settings… (⌘,) then Total (Menu bar, List; the last one on disabled) with a separator after it, the optional TOTAL row, "Sign in to GitHub…" and "Choose Repositories…"; verify the order and every Total combination on screen
-- [x] 10.8 Add `GitHubClientID` to Info.plist, sign with the Developer ID identity in `run.sh` and `build.sh`, and document the OAuth app, the `repo` scope and revoking in the README; verify `codesign -dv dist/Tallynn.app` shows the team identifier
-- [ ] 10.9 With the author's OAuth app registered and its client ID in Info.plist, run the whole flow: sign in, tick a private repository, a real download notifies once, revoke on GitHub and see Tallynn sign out
+- [ ] 10.5 Hold the token in memory and handle losing the login (clears counts, releases, last refresh; keeps picks), another account (clears picks), stale results and ticks during a refresh; verify that the first refresh after signing in notifies nothing and Sign Out clears the keys
+- [ ] 10.6 Add the Settings window (`Settings.swift`, like ClaudioStat's setup window): GitHub CLI missing, Sign in with GitHub, the copied code with Cancel and Open GitHub Again, Sign Out, and the repository checkboxes with locks and reload; verify on screen that it shows the signed-in account and that ticking a private repository adds it to the menu without a notification
+- [ ] 10.7 Update the menu: Settings… (⌘,) then Total (Menu bar, List; the last one on disabled) with a separator after it, the optional TOTAL row, "Install the GitHub CLI…", "Sign in to GitHub…" and "Choose Repositories…"; verify the order and every Total combination on screen
+- [ ] 10.8 Document signing in through the GitHub CLI, the repository picker and the Total menu in the README; verify the steps work as written
+- [ ] 10.9 Run the whole flow: sign in, tick a private repository, a real download notifies once, sign out and back in without notifications
 
 ## 11. Integration check
 

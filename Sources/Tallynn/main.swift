@@ -11,7 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var busy = false
     var again = false  // repositories were ticked during a refresh: one more once it ends
     var timer: Timer?
-    /// Read from the Keychain at launch and kept in memory. Never logged.
+    /// The GitHub CLI's token, read again on each refresh and kept only in memory. Never logged.
     var token: String?
 
     /// The counts of the last successful refresh. nil until the first one (no baseline yet), and while signed out.
@@ -32,15 +32,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if defaults.object(forKey: "shownRepos") == nil {
             defaults.set(migratedShownRepos(defaults.dictionary(forKey: "counts") as? Counts), forKey: "shownRepos")
         }
-        token = savedToken()
         let menu = NSMenu()
         menu.delegate = self
         menu.autoenablesItems = false
         item.menu = menu
         UNUserNotificationCenter.current().delegate = self
         render()
-        reschedule()
-        if token == nil { showSettings() }
+        Task {
+            await connect()
+            render()
+            reschedule()
+            if token == nil, problem != .failed { showSettings() }
+        }
     }
 
     /// Refresh now, then every interval.
@@ -55,20 +58,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc func tick() {
-        guard let token else { problem = .signedOut; return render() }
         guard !busy else { again = true; return }
         busy = true
-        let shown = shownRepos
         Task {
-            let result = await fetchReleases(token: token, shown: shown)
+            await connect()
+            if let token {
+                let result = await fetchReleases(token: token, shown: shownRepos)
+                // Signed out, or another account signed in, while it asked: the answer is stale.
+                if token == self.token { apply(result) }
+            }
             busy = false
-            // Signed out, or another account signed in, while it asked: the answer is stale.
-            if token == self.token { apply(result) }
             render()
             if again {
                 again = false
                 tick()
             }
+        }
+    }
+
+    /// Follows the GitHub CLI's login, which can also change in Terminal (`gh auth login`, `gh auth switch`).
+    func connect() async {
+        guard let path = ghPath() else { return disconnect(.notFound) }
+        guard let current = await ghToken(path) else { return disconnect(.signedOut) }
+        guard current != token else { return }
+        do {
+            adopt(current, login: try await fetchLogin(token: current))
+        } catch {
+            problem = error == .signedOut ? .signedOut : .failed
         }
     }
 
@@ -87,18 +103,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if !found.isEmpty { notify(found) }
             log.notice("counts: \(fresh.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }.joined(separator: ", "), privacy: .public), total \(total(fresh)), changes \(found.count)")
         case .failure(.signedOut):
-            log.notice("GitHub no longer accepts the token")
-            signOut()
+            log.notice("GitHub no longer accepts the GitHub CLI's token")
+            disconnect(.signedOut)
         case .failure(let failure):
             problem = failure
             log.notice("refresh failed: \(String(describing: failure), privacy: .public)")
         }
     }
 
-    /// Settings calls this once GitHub hands over a token. False when the Keychain refused it.
-    func signedIn(token: String, login: String) -> Bool {
-        guard saveToken(token) else { return false }
-        // Another account's picks and counts mean nothing here; the first refresh is then a baseline.
+    func adopt(_ token: String, login: String) {
+        // Another account's picks and counts mean nothing here; its first refresh is then a baseline.
         if let previous = defaults.string(forKey: "login"), previous != login {
             defaults.set([String](), forKey: "shownRepos")
             clearCounts()
@@ -107,18 +121,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         self.token = token
         problem = nil
         log.notice("signed in as \(login, privacy: .public)")
-        reschedule()
-        return true
+        (settingsWindow?.delegate as? SettingsModel)?.signedIn(login)
     }
 
-    /// The picks stay, so the same account signing in again sees the same menu, with no notifications.
-    @objc func signOut() {
-        deleteToken()
+    /// No GitHub CLI or no login. Counts go, so signing in again starts from a baseline; the picks stay.
+    func disconnect(_ reason: Problem) {
+        if token != nil { clearCounts() }
         token = nil
-        clearCounts()
-        problem = .signedOut
-        (settingsWindow?.delegate as? SettingsModel)?.step = .signedOut
-        render()
+        problem = reason
+        (settingsWindow?.delegate as? SettingsModel)?.start()
     }
 
     func clearCounts() {

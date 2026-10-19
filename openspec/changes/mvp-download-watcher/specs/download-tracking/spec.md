@@ -7,27 +7,35 @@ Keeps an up-to-date download count for each repository the signed-in GitHub user
 ## ADDED Requirements
 
 ### Requirement: Sign in with GitHub
-The app SHALL sign in with the GitHub OAuth device flow, asking for the `repo` scope, and SHALL keep the token only in the login Keychain: never in preferences, never in the log. Without a token the app SHALL NOT refresh.
+The app SHALL sign in through the GitHub CLI's browser sign-in (`gh auth login --web`) and SHALL use the CLI's token for every refresh, reading it again each time. It SHALL NOT store, display or log a token. Without the CLI or a login it SHALL NOT refresh.
+
+#### Scenario: Already signed in to the GitHub CLI
+- **WHEN** the GitHub CLI already has a login when the app starts
+- **THEN** the app uses it at once, with no sign-in step
 
 #### Scenario: Sign in
-- **WHEN** the user starts signing in, enters the code shown on github.com and approves
-- **THEN** the token is saved in the Keychain, the account name is shown, and a refresh starts
+- **WHEN** the user picks Sign in with GitHub, pastes the copied code on the page that opens and approves
+- **THEN** the GitHub CLI is signed in, the app shows the account and a refresh starts
 
-#### Scenario: Code denied or expired
-- **WHEN** the user cancels on github.com, or the code expires before it is entered
-- **THEN** no token is saved and the app says why and offers to sign in again
+#### Scenario: Sign-in fails or is cancelled
+- **WHEN** the user cancels in the app, or the GitHub CLI's sign-in fails
+- **THEN** nothing changes and the app offers to sign in again
+
+#### Scenario: Login changed in Terminal
+- **WHEN** the user signs in or switches accounts with the GitHub CLI in Terminal
+- **THEN** the next refresh follows that login
 
 #### Scenario: Sign out
-- **WHEN** the user signs out
-- **THEN** the token is deleted from the Keychain and the saved counts, releases and last refresh time are cleared, while the chosen repositories are kept
+- **WHEN** the user signs out in Settings and confirms
+- **THEN** the GitHub CLI is signed out on this Mac and the saved counts, releases and last refresh time are cleared, while the chosen repositories are kept
 
 #### Scenario: Token revoked
 - **WHEN** GitHub answers a refresh with 401
-- **THEN** the app signs out as above
+- **THEN** the app shows it is signed out and clears the saved counts
 
-#### Scenario: Not signed in
-- **WHEN** no token is saved
-- **THEN** no request is made to GitHub and the app shows that it needs a sign-in
+#### Scenario: GitHub CLI missing
+- **WHEN** no GitHub CLI executable is found
+- **THEN** no request is made and the app says how to install it
 
 ### Requirement: Repository discovery
 The app SHALL list the signed-in user's own public and private repositories that are not forks, never organization repositories. The account SHALL come from the sign-in, never from the app's code or settings.

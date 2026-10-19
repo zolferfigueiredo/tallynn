@@ -100,23 +100,27 @@ The Total submenu SHALL offer Menu bar and List, each checked when on, defaultin
 - **THEN** its item is disabled, so the total always shows somewhere
 
 ### Requirement: Settings window
-Settings SHALL let the user sign in and out and choose repositories. Signed out it SHALL offer "Sign in with GitHub"; while signing in it SHALL show the code in large type with "Copy Code & Open GitHub" and Cancel; signed in it SHALL show "Signed in as @login" with Sign Out and the user's repositories A to Z as checkboxes, private ones with a lock, and a way to reload the list. Every tick SHALL apply at once.
+Settings SHALL let the user sign in and out and choose repositories. Without the GitHub CLI it SHALL say how to install it; signed out it SHALL offer "Sign in with GitHub"; while signing in it SHALL show the code the GitHub CLI copied, with Cancel and Open GitHub Again; signed in it SHALL show "Signed in as @login" with Sign Out and the user's repositories A to Z as checkboxes, private ones with a lock, and a way to reload the list. Every tick SHALL apply at once.
 
 #### Scenario: Signing in
 - **WHEN** the user picks Sign in with GitHub
-- **THEN** the code appears, Copy Code & Open GitHub copies it and opens github.com, and after approval the window comes back in front showing the account and its repositories
+- **THEN** github.com opens with the code on the clipboard and shown in the window, and after approval the window comes back in front showing the account and its repositories
 
 #### Scenario: Closing mid sign-in
 - **WHEN** the user closes Settings or picks Cancel while waiting for GitHub
-- **THEN** the sign-in stops and nothing is saved
+- **THEN** the GitHub CLI's sign-in stops and nothing changes
 
 #### Scenario: Ticking a repository
 - **WHEN** the user ticks a repository in the list
 - **THEN** it appears in the menu after the refresh that follows, without a notification
 
-#### Scenario: No client ID
-- **WHEN** Info.plist has no GitHubClientID
-- **THEN** Sign in with GitHub is disabled and the window says the client ID is missing
+#### Scenario: Signing out
+- **WHEN** the user picks Sign Out
+- **THEN** the app first asks, because this also signs the GitHub CLI out on this Mac
+
+#### Scenario: No GitHub CLI
+- **WHEN** the GitHub CLI isn't installed
+- **THEN** Settings says to install it with Homebrew and offers Try Again and Get GitHub CLI
 
 ### Requirement: About window
 About Tallynn SHALL open a window like BeeHan Brightness's About: the app icon, "Tallynn", "Made by Zolfer Figueiredo" linking to zolfer.com, the version, a separator, a GitHub link to the repository, and "Buy me a coffee".
@@ -152,11 +156,15 @@ Opening the app while it is running (clicking its Dock icon, Spotlight, Finder) 
 - **THEN** Settings comes to the front
 
 ### Requirement: Problems shown in the menu
-While signed out or when the last refresh failed, the menu SHALL show a problem line above the counts. A failed refresh SHALL keep the last known total in the menu bar.
+Without the GitHub CLI, while signed out, or when the last refresh failed, the menu SHALL show a problem line above the counts. A failed refresh SHALL keep the last known total in the menu bar.
 
 #### Scenario: Signed out
 - **WHEN** no account is signed in
 - **THEN** the menu says "Sign in to GitHub…", which opens Settings
+
+#### Scenario: GitHub CLI missing
+- **WHEN** the GitHub CLI isn't installed
+- **THEN** the menu says "Install the GitHub CLI…", which opens Settings
 
 #### Scenario: Network or GitHub failure
 - **WHEN** a refresh fails while signed in

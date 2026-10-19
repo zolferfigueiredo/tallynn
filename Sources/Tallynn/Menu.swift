@@ -23,7 +23,11 @@ extension AppDelegate {
         }
 
         if let problem {
-            let line = problem == .signedOut ? add("Sign in to GitHub…", #selector(showSettings)) : add("Couldn’t refresh")
+            let line = switch problem {
+            case .notFound: add("Install the GitHub CLI…", #selector(showSettings))
+            case .signedOut: add("Sign in to GitHub…", #selector(showSettings))
+            case .failed: add("Couldn’t refresh")
+            }
             line.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: nil)
             menu.addItem(.separator())
         } else if token != nil, shownRepos.isEmpty {
