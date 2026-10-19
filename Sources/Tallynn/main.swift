@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var busy = false
     var again = false  // repositories were ticked during a refresh: one more once it ends
     var timer: Timer?
+    var checking = false  // an update check or install is running
     /// The GitHub CLI's token, read again on each refresh and kept only in memory. Never logged.
     var token: String?
 
@@ -28,7 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        defaults.register(defaults: ["interval": 10, "totalInMenuBar": true, "totalInList": false])
+        defaults.register(defaults: ["interval": 10, "totalInMenuBar": true, "totalInList": false, "updateEvery": 604800])
         if defaults.object(forKey: "shownRepos") == nil {
             defaults.set(migratedShownRepos(defaults.dictionary(forKey: "counts") as? Counts), forKey: "shownRepos")
         }
@@ -43,7 +44,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             render()
             reschedule()
             if token == nil, problem != .failed { showSettings() }
+            autoCheck()  // needs the sign-in, so after connecting
         }
+        let updates = Timer(timeInterval: 3600, target: self, selector: #selector(autoCheck), userInfo: nil, repeats: true)
+        updates.tolerance = 600
+        RunLoop.main.add(updates, forMode: .common)
+        Task { showUpdateComplete() }  // after launch finishes, not in the middle of it
     }
 
     /// Refresh now, then every interval.

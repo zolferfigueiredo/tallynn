@@ -16,6 +16,13 @@ func notify(_ changes: [Change]) {
 }
 
 extension AppDelegate: UNUserNotificationCenterDelegate {
+    /// Clicking "… is available" checks again, which offers Update Now.
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+                                            withCompletionHandler done: @escaping () -> Void) {
+        if response.notification.request.identifier == "update" { Task { @MainActor in self.checkNow() } }
+        done()
+    }
+
     /// Shown even while the menu is open, which makes the app frontmost.
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
                                             withCompletionHandler done: @escaping (UNNotificationPresentationOptions) -> Void) {

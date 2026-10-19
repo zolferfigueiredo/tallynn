@@ -88,6 +88,27 @@ extension AppDelegate {
         add("Keep in Dock", #selector(toggleDock), on: inDock())
         menu.addItem(.separator())
         add("About Tallynn", #selector(showAbout)).image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: nil)
+        menu.addItem(.separator())
+        // While an update installs, its step stands in, in plain text that greys out.
+        let check = add(UpdateProgress.underway ?? "Check for updates…", #selector(checkNow), enabled: !checking && UpdateProgress.underway == nil)
+        if let version = availableUpdate, UpdateProgress.underway == nil {
+            check.attributedTitle = updateAvailableTitle(version)
+            check.image = updateAvailableIcon()
+        } else {
+            check.image = NSImage(systemSymbolName: "arrow.down.circle", accessibilityDescription: nil)
+        }
+        let automatic = NSMenu()
+        for (title, every) in [("Daily", 86400), ("Weekly", 604800), ("Never", 0)] {
+            let entry = NSMenuItem(title: title, action: #selector(chooseUpdateEvery), keyEquivalent: "")
+            entry.target = self
+            entry.tag = every
+            entry.state = defaults.integer(forKey: "updateEvery") == every ? .on : .off
+            automatic.addItem(entry)
+        }
+        let auto = add("Check automatically")
+        auto.submenu = automatic
+        auto.image = NSImage(size: NSSize(width: 16, height: 16))  // blank, so the title lines up with the icon rows
+        menu.addItem(.separator())
         let quit = add("Quit Tallynn", #selector(NSApplication.terminate), key: "q")
         quit.target = NSApp
     }
@@ -118,6 +139,12 @@ extension AppDelegate {
         defaults.set(on, forKey: key)
         render()
         (settingsWindow?.delegate as? SettingsModel)?.loadTotal()
+    }
+
+    @objc func chooseUpdateEvery(_ sender: NSMenuItem) {
+        defaults.set(sender.tag, forKey: "updateEvery")
+        log.notice("updateEvery = \(sender.tag)")
+        autoCheck()
     }
 
     @objc func chooseInterval(_ sender: NSMenuItem) {
