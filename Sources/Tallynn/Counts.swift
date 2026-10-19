@@ -15,19 +15,13 @@ nonisolated struct Release: Codable, Equatable, Sendable {
     let downloads: Int
 }
 
-/// gh prints one "tag<TAB>name<TAB>downloads" line per release asset, newest release first. Only installers count,
-/// as in the author's script; a release whose assets are all something else stays, with 0.
-nonisolated func releaseDownloads(_ output: String) -> [Release] {
-    var tags: [String] = [], sums: [String: Int] = [:]
-    for line in output.split(whereSeparator: \.isNewline) {
-        let parts = line.split(separator: "\t", omittingEmptySubsequences: false)
-        guard parts.count == 3, let downloads = Int(parts[2]) else { continue }
-        let tag = String(parts[0])
-        if sums[tag] == nil { tags.append(tag) }
-        let installer = [".dmg", ".exe", ".zip"].contains { parts[1].hasSuffix($0) }
-        sums[tag, default: 0] += installer ? downloads : 0
+/// Each release's installer downloads, in GitHub's order (newest first). Only installers count, as in the author's
+/// script; a release whose assets are all something else stays, with 0.
+nonisolated func releaseDownloads(_ releases: [GitHubRelease]) -> [Release] {
+    releases.map { release in
+        let installers = release.assets.filter { asset in [".dmg", ".exe", ".zip"].contains { asset.name.hasSuffix($0) } }
+        return Release(tag: release.tagName, downloads: installers.reduce(0) { $0 + $1.downloadCount })
     }
-    return tags.map { Release(tag: $0, downloads: sums[$0]!) }
 }
 
 /// Each repository's downloads, from its releases.
@@ -37,12 +31,12 @@ nonisolated func repoCounts(_ releases: [String: [Release]]) -> Counts {
 
 nonisolated func total(_ counts: Counts) -> Int { counts.values.reduce(0, +) }
 
-/// No `old` means nothing was saved yet: the first refresh is a baseline. A repository seen for the first time
-/// counts from 0, and one no longer listed is left out.
+/// A repository with no saved count is a baseline: just ticked, or the first refresh after signing in. Its next
+/// change is notified. One no longer shown is left out.
 nonisolated func changes(old: Counts?, new: Counts) -> [Change] {
-    guard let old else { return [] }
-    return new.compactMap { repo, count in
-        old[repo, default: 0] == count ? nil : Change(repo: repo, old: old[repo, default: 0], new: count)
+    new.compactMap { repo, count in
+        guard let before = old?[repo], before != count else { return nil }
+        return Change(repo: repo, old: before, new: count)
     }.sorted { $0.repo < $1.repo }
 }
 
@@ -58,3 +52,14 @@ nonisolated func menuRows(_ counts: Counts) -> [(repo: String, count: Int)] {
         .sorted { $0.key.localizedStandardCompare($1.key) == .orderedAscending }
         .map { (repo: $0.key, count: $0.value) }
 }
+
+/// The repositories that can be shown: no forks, sorted as Finder sorts names.
+nonisolated func sourceRepos(_ repos: [Repo]) -> [Repo] {
+    repos.filter { !$0.fork }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+}
+
+/// Before repositories could be picked, every one with downloads was shown, so an upgrade starts with those ticked.
+nonisolated func migratedShownRepos(_ counts: Counts?) -> [String] { menuRows(counts ?? [:]).map(\.repo) }
+
+/// Where the total shows. Never nowhere: with both off, the menu bar keeps it.
+nonisolated func totalPlaces(menuBar: Bool, list: Bool) -> (menuBar: Bool, list: Bool) { (menuBar || !list, list) }
