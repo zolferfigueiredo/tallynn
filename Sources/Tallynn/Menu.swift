@@ -26,9 +26,12 @@ extension AppDelegate {
             add(problemText(problem)).image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: nil)
             menu.addItem(.separator())
         }
+        // Badges sit at the right edge, in the column ⌘Q and the submenu arrow use, so counts line up with the border.
         if let counts {
-            for row in menuRows(counts) { add("").attributedTitle = countTitle(row.repo, row.count, bold: false) }
-            add("").attributedTitle = countTitle("TOTAL", total(counts), bold: true)
+            for row in menuRows(counts) { add(row.repo).badge = NSMenuItemBadge(string: row.count.formatted()) }
+            let sum = add("TOTAL")
+            sum.attributedTitle = NSAttributedString(string: "TOTAL", attributes: [.font: NSFont.boldSystemFont(ofSize: NSFont.menuFont(ofSize: 0).pointSize)])
+            sum.badge = NSMenuItemBadge(string: total(counts).formatted())
         }
         if let lastRefresh {
             add("Updated \(lastRefresh.formatted(date: .omitted, time: .shortened))", enabled: false)
@@ -64,17 +67,6 @@ extension AppDelegate {
         case .loggedOut: "Not logged in. Run in Terminal: gh auth login"
         case .failed: "Couldn’t refresh"
         }
-    }
-
-    /// The name, then the count right-aligned in a fixed column with digits of equal width.
-    func countTitle(_ name: String, _ count: Int, bold: Bool) -> NSAttributedString {
-        let size = NSFont.menuFont(ofSize: 0).pointSize
-        let style = NSMutableParagraphStyle()
-        style.tabStops = [NSTextTab(textAlignment: .right, location: 180)]
-        return NSAttributedString(string: "\(name)\t\(count.formatted())", attributes: [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: size, weight: bold ? .semibold : .regular),
-            .paragraphStyle: style,
-        ])
     }
 
     @objc func refreshNow() { tick() }

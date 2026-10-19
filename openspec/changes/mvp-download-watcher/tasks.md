@@ -20,19 +20,19 @@
 ## 4. Refresh loop and remembered counts
 
 - [x] 4.1 In `AppDelegate`, register the default `interval` of 10, load `counts`/`lastRefresh` from `UserDefaults`, and add `reschedule()` / `tick()` with a `busy` guard copied from ClaudioStat; verify the log shows a refresh at launch and at each interval (use a temporary 1-minute interval for the check, then remove it)
-- [ ] 4.2 On success, save `counts` and `lastRefresh`. On failure, keep both and store the problem. Verify that relaunching shows the previous total before the first refresh, and that with Wi-Fi off the counts stay unchanged and a failure is logged
+- [x] 4.2 On success, save `counts` and `lastRefresh`. On failure, keep both and store the problem. Verify that relaunching shows the previous total before the first refresh, and that with Wi-Fi off the counts stay unchanged and a failure is logged
 
 ## 5. Notifications
 
 - [x] 5.1 Add `Sources/Tallynn/Notifications.swift` modeled on ClaudioStat's `post()`: request alert+sound permission on first use, title "Tallynn", body from `notificationBody`, default sound, unique id per refresh; call it from `tick()` only when `changes` is non-empty
-- [ ] 5.2 Verify end to end: a fresh install (`defaults delete com.zolfer.tallynn`) posts nothing; `defaults write com.zolfer.tallynn counts -dict theej -int 358` followed by Refresh now posts "theej +3 (361)" with a sound; with notifications denied in System Settings, counts still update
+- [x] 5.2 Verify end to end: a fresh install (`defaults delete com.zolfer.tallynn`) posts nothing; `defaults write com.zolfer.tallynn counts -dict theej -int 358` followed by Refresh now posts "theej +3 (361)" with a sound; with notifications denied in System Settings, counts still update
 
 ## 6. Menu and Dock
 
-- [ ] 6.1 Show the Tallynn icon plus `total.formatted()` in the menu bar (icon alone before any counts); verify against the spec's "Menu bar item" scenarios
-- [ ] 6.2 Build the menu in `menuNeedsUpdate(_:)`: problem line, repo rows with count > 0 (highest first, counts right-aligned by tab stop), TOTAL, "Updated HH:mm", Refresh now, Every submenu (5/10/30/60, current one checked, calls `reschedule()`), Launch at login (`SMAppService.mainApp`, as in ClaudioStat), Quit; verify the script's example data shows five repos, "TOTAL 1,111" and no zolferfigueiredo row
+- [x] 6.1 Show the Tallynn icon plus `total.formatted()` in the menu bar (icon alone before any counts); verify against the spec's "Menu bar item" scenarios
+- [x] 6.2 Build the menu in `menuNeedsUpdate(_:)`: problem line, repo rows with count > 0 (highest first, counts as `NSMenuItemBadge` at the right edge), TOTAL, "Updated HH:mm", Refresh now, Every submenu (5/10/30/60, current one checked, calls `reschedule()`), Launch at login (`SMAppService.mainApp`, as in ClaudioStat), Quit; verify the script's example data shows five repos, "TOTAL 1,111" and no zolferfigueiredo row
 - [ ] 6.3 Show the problem texts from the spec for gh missing (temporarily point `ghPath()` at a bad path), logged out (`gh auth logout` on a test account, or a stubbed result) and network failure; verify each message and that the menu bar keeps the last total
-- [ ] 6.4 Copy `~/www/claudiostat/Sources/ClaudioStat/Dock.swift`, add the Keep in Dock item and `applicationShouldHandleReopen` popping the menu at `NSEvent.mouseLocation`; verify pinning, unpinning, the checkmark state, and that a Dock click and opening from Spotlight both show the menu at the pointer
+- [x] 6.4 Copy `~/www/claudiostat/Sources/ClaudioStat/Dock.swift`, add the Keep in Dock item and `applicationShouldHandleReopen` popping the menu at `NSEvent.mouseLocation`; verify pinning, unpinning, the checkmark state, and that a Dock click and opening from Spotlight both show the menu at the pointer
 
 ## 7. Icons
 
