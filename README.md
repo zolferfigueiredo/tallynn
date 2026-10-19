@@ -65,7 +65,7 @@ Every 5, 10, 30 or 60 minutes, and when you choose **Refresh**, Tallynn asks Git
 - **Refresh** (⌘R), and **Refresh rate**: 5, 10 (default) or 30 minutes, or 1 hour.
 - **Total**: **Menu bar** (on) and **List** (off). At least one stays on. The same two are in Settings.
 - **Settings…** (⌘,):
-  - **General**: your GitHub account, the repositories to count, the total, and the language.
+  - **General**: the language first, then your GitHub account, the repositories to count, and the total.
   - **About**: the version, and links to the author, GitHub and Buy me a coffee.
 - **Launch at Login** (from the Applications folder) and **Keep in Dock**, which asks first because macOS restarts the Dock to change it.
 - **About Tallynn** opens Settings on About.
