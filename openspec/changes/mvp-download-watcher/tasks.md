@@ -36,7 +36,7 @@
 
 ## 7. Icons
 
-- [x] 7.1 Add `Icon/make-icon.swift` drawing the Viru Gate app icon (twin cone-roofed towers, download arrow through the arch) into an iconset, and have `run.sh` build `AppIcon.icns` from it as ClaudioStat does; verify the pinned Dock icon and notifications show the art
+- [x] 7.1 Add `Icon/make-icon.swift` drawing the Viru Gate app icon (white gate silhouette with a black door on Estonian blue fading to black, no arrow) into an iconset, and have `run.sh` build `AppIcon.icns` from it as ClaudioStat does; verify the pinned Dock icon and notifications show the art
 - [x] 7.2 Replace the `arrow.down.circle` placeholder with an 18 pt template silhouette of the same motif; verify it is legible in light and dark menu bars and next to the notch
 
 ## 8. Release build
@@ -44,9 +44,18 @@
 - [x] 8.1 Add `build.sh` adapted from ClaudioStat's (run `swift test`, universal release build, assemble `dist/Tallynn.app` with the icon, ad hoc sign or `SIGN_ID`, `codesign --verify`; no DMG); verify `./build.sh` succeeds and the app runs from `/Applications`
 - [x] 8.2 Extend `README.md` with `./build.sh` and installing to `/Applications`; verify the steps work as written
 
-## 9. Integration check
+## 9. Menu and icon refinements
 
-- [ ] 9.1 Run the installed app alongside the author's shell script for a day at a 5-minute interval: totals always match, every real download produces exactly one notification, and relaunching or waking from sleep never sends a spurious one
+- [x] 9.1 Sort repository rows alphabetically (`localizedStandardCompare`) and drop the TOTAL row; verify `menuHidesZerosAndSortsAlphabetically` passes and the menu lists bhbrightness to wrecktangle with no TOTAL
+- [x] 9.2 Rename Refresh Now to Refresh and Refresh Every to Refresh rate, move "Updated" below the separator just above Refresh, and put About Tallynn directly above Quit with no separator; verify the menu order on screen
+- [x] 9.3 Keep per-release downloads: gh's jq emits `tag<TAB>name<TAB>downloads`, `releaseDownloads` sums installers per release, `repoCounts` derives the counts, and `releases` is saved as JSON next to `counts`; verify the new unit tests pass and the saved releases sum to the logged counts
+- [x] 9.4 Give each repository row a submenu of its releases with downloads (newest first, counts as `NSMenuItemBadge`, zero releases hidden); verify on screen
+- [ ] 9.5 Replace the About window with one laid out like BeeHan Brightness's (icon, name, Made by, version, separator, GitHub, Buy me a coffee); verify it opens from About Tallynn and every link works
+- [ ] 9.6 Redraw the icons: the app icon as a white gate (0.92 size, on the bottom edge, black door) on Estonian blue fading to black, and the menu bar template without the arrow; verify the Dock and menu bar show them
+
+## 10. Integration check
+
+- [ ] 10.1 Run the installed app alongside the author's shell script for a day at a 5-minute interval: totals always match, every real download produces exactly one notification, and relaunching or waking from sleep never sends a spurious one
 
 ## Workflow follow-up
 

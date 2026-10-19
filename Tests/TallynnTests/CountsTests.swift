@@ -1,10 +1,24 @@
 import Testing
 @testable import Tallynn
 
-@Test func onlyInstallersCount() {
-    let gh = "App.dmg\t300\nApp.exe\t50\nApp.zip\t10\nchecksums.txt\t99\nApp.dmg.sig\t7\n"
-    #expect(installerDownloads(gh) == 360)
-    #expect(installerDownloads("") == 0)
+@Test func onlyInstallersCountPerRelease() {
+    let gh = """
+    v2.0\tApp.dmg\t300
+    v2.0\tApp.exe\t50
+    v2.0\tApp.zip\t10
+    v2.0\tchecksums.txt\t99
+    v2.0\tApp.dmg.sig\t7
+    v1.0\tApp.dmg\t42
+    v0.9\tnotes.txt\t5
+    """
+    #expect(releaseDownloads(gh) == [Release(tag: "v2.0", downloads: 360), Release(tag: "v1.0", downloads: 42),
+                                     Release(tag: "v0.9", downloads: 0)])
+    #expect(releaseDownloads("").isEmpty)
+}
+
+@Test func repoCountIsTheSumOfItsReleases() {
+    let releases = ["theej": [Release(tag: "v2", downloads: 300), Release(tag: "v1", downloads: 62)], "weej": []]
+    #expect(repoCounts(releases) == ["theej": 362, "weej": 0])
 }
 
 @Test func totalOfRepositories() {
@@ -42,7 +56,7 @@ import Testing
     #expect(changes(old: ["theej": 361, "gone": 5], new: ["theej": 361]).isEmpty)
 }
 
-@Test func menuHidesZerosAndSortsByCount() {
-    let rows = menuRows(["theej": 361, "weej": 16, "wrecktangle": 34, "claudiostat": 430, "bhbrightness": 270, "zolferfigueiredo": 0])
-    #expect(rows.map(\.repo) == ["claudiostat", "theej", "bhbrightness", "wrecktangle", "weej"])
+@Test func menuHidesZerosAndSortsAlphabetically() {
+    let rows = menuRows(["theej": 361, "weej": 16, "wrecktangle": 34, "claudiostat": 430, "bhbrightness": 270, "zolferfigueiredo": 0, "App2": 1, "app10": 1])
+    #expect(rows.map(\.repo) == ["App2", "app10", "bhbrightness", "claudiostat", "theej", "weej", "wrecktangle"])
 }

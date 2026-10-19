@@ -2,7 +2,7 @@
 
 A macOS menu bar app that keeps a tally of your GitHub release downloads and plays a sound when they change.
 
-Every 5, 10, 30 or 60 minutes it counts the downloads of `.dmg`, `.exe` and `.zip` release assets across your public, non-fork repositories. The total sits in the menu bar, each repository's count is in the menu, and every change arrives as one notification, such as "theej +3 (364)".
+Every 5, 10, 30 or 60 minutes it counts the downloads of `.dmg`, `.exe` and `.zip` release assets across your public, non-fork repositories. The total sits in the menu bar, each repository's count is in the menu with a submenu of downloads per release, and every change arrives as one notification, such as "theej +3 (364)".
 
 The art comes from Tallinn's Old Town.
 

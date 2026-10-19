@@ -32,22 +32,36 @@ The menu bar item SHALL show the Tallynn icon followed by the total. Before any 
 - **THEN** the menu bar shows the icon alone
 
 ### Requirement: Counts in the menu
-The menu SHALL list each repository with a count above 0 and its count, sorted by count with the highest first, followed by a TOTAL row and the time of the last successful refresh. Repositories with 0 SHALL be hidden.
+The menu SHALL list each repository with a count above 0, alphabetically as Finder sorts names, with its count at the menu's right edge. Repositories with 0 SHALL be hidden. The total SHALL appear only in the menu bar, not as a menu row.
 
 #### Scenario: Script's example
 - **WHEN** counts are claudiostat 430, theej 361, bhbrightness 270, wrecktangle 34, weej 16, zolferfigueiredo 0
-- **THEN** the menu lists claudiostat, theej, bhbrightness, wrecktangle, weej with their counts, then "TOTAL 1,111", and zolferfigueiredo does not appear
+- **THEN** the menu lists bhbrightness, claudiostat, theej, weej, wrecktangle with their counts at the right edge, with no TOTAL row, and zolferfigueiredo does not appear
+
+### Requirement: Downloads per version
+Each repository row SHALL open a submenu listing that repository's releases with downloads above 0, newest first, each with its count at the right edge.
+
+#### Scenario: Releases of a repository
+- **WHEN** claudiostat has v0.6.0 with 78 downloads, v0.5.0 with 287 and v0.4.10 with 0
+- **THEN** hovering claudiostat shows v0.6.0 78, then v0.5.0 287, and no v0.4.10 row
 
 ### Requirement: Menu actions
-The menu SHALL offer: Refresh now, an interval choice (5, 10, 30, 60 minutes) with the current one checked, Launch at login, Keep in Dock, and Quit. Launch at login and Keep in Dock SHALL show a checkmark when on.
+Below the counts and a separator, the menu SHALL show the time of the last successful refresh, then Refresh, then a Refresh rate submenu (5, 10, 30, 60 minutes) with the current one checked. After a separator come Launch at Login and Keep in Dock, each with a checkmark when on, and after another separator About Tallynn directly above Quit Tallynn.
 
-#### Scenario: Refresh now
-- **WHEN** the user picks Refresh now
+#### Scenario: Refresh
+- **WHEN** the user picks Refresh
 - **THEN** a refresh starts immediately
 
 #### Scenario: Launch at login
-- **WHEN** the user turns on Launch at login
+- **WHEN** the user turns on Launch at Login
 - **THEN** the app starts automatically at the next login, and the item shows a checkmark
+
+### Requirement: About window
+About Tallynn SHALL open a window like BeeHan Brightness's About: the app icon, "Tallynn", "Made by Zolfer Figueiredo" linking to zolfer.com, the version, a separator, a GitHub link to the repository, and "Buy me a coffee".
+
+#### Scenario: Open About
+- **WHEN** the user picks About Tallynn
+- **THEN** the About window comes to the front showing the version from the app's Info.plist
 
 ### Requirement: Keep in Dock
 Keep in Dock SHALL pin the app's icon to the Dock or unpin it, like the Dock's own "Keep in Dock" option, and its checkmark SHALL reflect whether the app is currently pinned.

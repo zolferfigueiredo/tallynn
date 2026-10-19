@@ -47,6 +47,17 @@ A repository's count SHALL be the sum of `download_count` over every asset of ev
 - **WHEN** the app and the author's shell script run against the same account at the same time
 - **THEN** every repository count and the total are identical
 
+### Requirement: Downloads per release
+For each repository the app SHALL keep each release's installer downloads, by tag and newest first as GitHub lists them, from the same refresh as the counts, and save them with the counts. A repository's count SHALL be the sum of its releases.
+
+#### Scenario: Releases kept
+- **WHEN** a refresh finds theej v2.5.0 with 38 installer downloads and v2.4.2 with 5
+- **THEN** both are saved in that order, and theej's count includes them
+
+#### Scenario: Shown after a relaunch
+- **WHEN** the app relaunches before its first refresh
+- **THEN** the per-release downloads saved by the last successful refresh are available
+
 ### Requirement: Total
 The total SHALL be the sum of all repository counts from the same refresh.
 

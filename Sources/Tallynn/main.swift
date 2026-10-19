@@ -14,6 +14,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// The counts of the last successful refresh. nil until the first one: no baseline yet.
     var counts: Counts? { defaults.dictionary(forKey: "counts") as? Counts }
     var lastRefresh: Date? { defaults.object(forKey: "lastRefresh") as? Date }
+    /// Each repository's releases from the last successful refresh, for the per-version submenus.
+    var releases: [String: [Release]] {
+        (try? JSONDecoder().decode([String: [Release]].self, from: defaults.data(forKey: "releases") ?? Data())) ?? [:]
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         defaults.register(defaults: ["interval": 10])
@@ -41,12 +45,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard !busy else { return }
         busy = true
         Task {
-            let result = await fetchCounts()
+            let result = await fetchReleases()
             busy = false
             switch result {
-            case .success(let fresh):
+            case .success(let releases):
+                let fresh = repoCounts(releases)
                 let found = changes(old: counts, new: fresh)
                 defaults.set(fresh, forKey: "counts")
+                defaults.set(try? JSONEncoder().encode(releases), forKey: "releases")
                 defaults.set(Date.now, forKey: "lastRefresh")
                 problem = nil
                 if !found.isEmpty { notify(found) }

@@ -1,5 +1,5 @@
-// App icon and menu bar icon: Tallinn's Viru Gate, a download arrow passing through its arch.
-// run.sh runs this: swift Icon/make-icon.swift <output folder>
+// App icon and menu bar icon: Tallinn's Viru Gate in white on Estonian blue fading to black.
+// run.sh and build.sh run this: swift Icon/make-icon.swift <output folder>
 // It writes <output>/AppIcon.iconset and the menu bar template <output>/menubar.png and menubar@2x.png.
 import AppKit
 
@@ -8,75 +8,58 @@ func rgb(_ hex: Int) -> NSColor {
             blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
 }
 
-let sky = NSGradient(colors: [rgb(0xDDF3EE), rgb(0x7EC6DA), rgb(0x2B78AE)])!  // horizon first
-let limestone = NSGradient(colors: [rgb(0xFFF8EA), rgb(0xEBDDC3), rgb(0xC4AE8B)])!
-let roof = NSGradient(colors: [rgb(0xF47F52), rgb(0xCC4128), rgb(0x8E2618)])!
-let gold = NSGradient(colors: [rgb(0xFFE08A), rgb(0xE9AE3A)])!
-let slit = rgb(0x5E4B3A)
-
-/// The menu bar template wants the shape alone: everything black, the arch cut out, windows left off.
-var silhouette = false
-
-func fill(_ path: NSBezierPath, _ gradient: NSGradient, angle: CGFloat = 0) {
-    if silhouette { NSColor.black.setFill(); path.fill() } else { gradient.draw(in: path, angle: angle) }
-}
+let blue = rgb(0x0072CE), black = rgb(0x05070B)
 
 func rect(_ x0: CGFloat, _ y0: CGFloat, _ x1: CGFloat, _ y1: CGFloat) -> NSBezierPath {
     NSBezierPath(rect: NSRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0))
 }
 
-/// A round wall tower: limestone lit from the left, a red cone roof with slightly concave sides overhanging it.
-func tower(x: CGFloat, width w: CGFloat, ground: CGFloat, top: CGFloat, roofHeight r: CGFloat) {
-    fill(rect(x, ground, x + w, top), limestone)
-    if !silhouette {
-        NSColor(white: 0, alpha: 0.14).setFill()
-        rect(x, top - 22, x + w, top).fill()  // the eave's shadow
-        slit.setFill()
-        for y in [top - 90, top - 195] {
-            NSBezierPath(roundedRect: NSRect(x: x + w / 2 - 9, y: y - 46, width: 18, height: 46), xRadius: 9, yRadius: 9).fill()
-        }
-    }
+/// A round tower's cone roof with slightly concave sides, overhanging the tower by a tenth of its width.
+func cone(x: CGFloat, width w: CGFloat, top: CGFloat, height r: CGFloat) -> NSBezierPath {
     let eave = w * 0.1
-    let cone = NSBezierPath()
-    cone.move(to: NSPoint(x: x - eave, y: top))
-    cone.curve(to: NSPoint(x: x + w / 2, y: top + r), controlPoint1: NSPoint(x: x + w * 0.18, y: top + r * 0.25),
+    let path = NSBezierPath()
+    path.move(to: NSPoint(x: x - eave, y: top))
+    path.curve(to: NSPoint(x: x + w / 2, y: top + r), controlPoint1: NSPoint(x: x + w * 0.18, y: top + r * 0.25),
                controlPoint2: NSPoint(x: x + w * 0.42, y: top + r * 0.75))
-    cone.curve(to: NSPoint(x: x + w + eave, y: top), controlPoint1: NSPoint(x: x + w * 0.58, y: top + r * 0.75),
+    path.curve(to: NSPoint(x: x + w + eave, y: top), controlPoint1: NSPoint(x: x + w * 0.58, y: top + r * 0.75),
                controlPoint2: NSPoint(x: x + w * 0.82, y: top + r * 0.25))
-    cone.close()
-    fill(cone, roof)
+    path.close()
+    return path
 }
 
-/// The gate in 1024-unit icon space. In the silhouette the ground rises, keeping only the recognisable top.
-func drawGate() {
-    let ground: CGFloat = silhouette ? 200 : 60
-    // The gateway wall with merlons, its arch, and the arrow passing through.
-    let wall = rect(372, ground, 652, 500)
-    var x: CGFloat = 372
-    while x + 27.6 <= 652.5 {
-        wall.append(rect(x, 500, x + 27.6, 525))
-        x += 46
+/// The gate in one color on a 1024-unit canvas: two round towers with cone roofs and the crenellated gateway
+/// between them, its base at y 200. The door is filled with `door`, or cut right through without one.
+func gate(_ color: NSColor, door: NSColor? = nil) -> NSImage {
+    NSImage(size: NSSize(width: 1024, height: 1024), flipped: false) { _ in
+        color.setFill()
+        let shape = rect(372, 200, 652, 500)
+        var x: CGFloat = 372
+        while x + 27.6 <= 652.5 {
+            shape.append(rect(x, 500, x + 27.6, 525))
+            x += 46
+        }
+        for left: CGFloat in [196, 636] {
+            shape.append(rect(left, 200, left + 192, 610))
+            shape.append(cone(x: left, width: 192, top: 610, height: 205))
+        }
+        shape.fill()
+        let arch = rect(450, 200, 574, 392)
+        arch.appendOval(in: NSRect(x: 450, y: 330, width: 124, height: 124))
+        if let door { door.setFill() } else { NSGraphicsContext.current?.compositingOperation = .clear }
+        arch.fill()
+        return true
     }
-    fill(wall, limestone, angle: -90)
-    let opening = rect(450, ground, 574, 392)
-    opening.appendOval(in: NSRect(x: 450, y: 330, width: 124, height: 124))
-    NSGraphicsContext.saveGraphicsState()
-    if silhouette { NSGraphicsContext.current?.compositingOperation = .clear }
-    rgb(0x3B3552).setFill()
-    opening.fill()
-    NSGraphicsContext.restoreGraphicsState()
-    let arrow = rect(496, 318, 528, 400)
-    arrow.move(to: NSPoint(x: 458, y: 322))
-    arrow.line(to: NSPoint(x: 566, y: 322))
-    arrow.line(to: NSPoint(x: 512, y: 248))
-    arrow.close()
-    fill(arrow, gold, angle: -90)
-    tower(x: 196, width: 192, ground: ground, top: 610, roofHeight: 205)
-    tower(x: 636, width: 192, ground: ground, top: 610, roofHeight: 205)
 }
 
-/// The silhouette's extent in icon space, so the menu bar image can be fitted to it.
-let silhouetteBounds = NSRect(x: 176, y: 200, width: 672, height: 615)
+/// The gate's extent on its canvas.
+let gateBounds = NSRect(x: 176, y: 200, width: 672, height: 615)
+
+/// Draws the gate scaled by `scale` about its centre line, its base at `base`.
+func place(_ image: NSImage, scale: CGFloat, base: CGFloat) {
+    let width = gateBounds.width * scale, height = gateBounds.height * scale
+    image.draw(in: NSRect(x: 512 - width / 2, y: base, width: width, height: height), from: gateBounds,
+               operation: .sourceOver, fraction: 1)
+}
 
 // Soft bevel from ClaudioStat: light glows in from the top edges and shade from the bottom ones.
 func bevel(_ path: NSBezierPath, light: NSColor, dark: NSColor, blur: CGFloat, offset: CGFloat) {
@@ -115,17 +98,12 @@ func icon(pixels: Int) -> Data {
         NSAffineTransform(transform: AffineTransform(scale: s)).concat()
         // macOS icon grid: an 824-unit rounded square centred in 1024.
         let plate = NSBezierPath(roundedRect: NSRect(x: 100, y: 100, width: 824, height: 824), xRadius: 185, yRadius: 185)
-        sky.draw(in: plate, angle: 90)
         NSGraphicsContext.saveGraphicsState()
         plate.addClip()
-        let shadow = NSShadow()
-        shadow.shadowOffset = NSSize(width: 0, height: -8 * s)
-        shadow.shadowBlurRadius = 22 * s
-        shadow.shadowColor = NSColor(white: 0, alpha: 0.22)
-        shadow.set()
-        drawGate()
+        NSGradient(colors: [black, rgb(0x003E73), blue])!.draw(in: plate, angle: 90)
+        place(gate(.white, door: black), scale: 0.92, base: 100)  // standing on the bottom edge
         NSGraphicsContext.restoreGraphicsState()
-        bevel(plate, light: NSColor(white: 1, alpha: 0.4), dark: NSColor(white: 0, alpha: 0.25), blur: 40 * s, offset: 14 * s)
+        bevel(plate, light: NSColor(white: 1, alpha: 0.3), dark: NSColor(white: 0, alpha: 0.35), blur: 40 * s, offset: 14 * s)
     }
 }
 
@@ -134,15 +112,10 @@ func icon(pixels: Int) -> Data {
 /// baseline, its walls as tall as the digits, only the roofs above.
 func menuBar(scale: Int) -> Data {
     let s = CGFloat(scale), inner = 14 * s
-    let width = Int((inner * silhouetteBounds.width / silhouetteBounds.height).rounded(.up)) + 2 * scale
-    return bitmap(width, 18 * scale) {
-        silhouette = true
-        var transform = AffineTransform(translationByX: s, byY: 3.5 * s)
-        transform.scale(inner / silhouetteBounds.height)
-        transform.translate(x: -silhouetteBounds.minX, y: -silhouetteBounds.minY)
-        NSAffineTransform(transform: transform).concat()
-        drawGate()
-        silhouette = false
+    let width = (inner * gateBounds.width / gateBounds.height).rounded(.up)
+    return bitmap(Int(width) + 2 * scale, 18 * scale) {
+        gate(.black).draw(in: NSRect(x: s, y: 3.5 * s, width: width, height: inner), from: gateBounds,
+                          operation: .sourceOver, fraction: 1)
     }
 }
 
