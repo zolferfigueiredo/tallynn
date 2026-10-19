@@ -203,6 +203,12 @@ struct SettingsView: View {
         // Read here so a new language redraws every string below.
         let _ = settings.language
         VStack(alignment: .leading, spacing: 12) {
+            // First, in every step: someone who can't read the rest can still find their language.
+            Picker(tr("language"), selection: Binding(get: { settings.language }, set: { settings.setLanguage($0) })) {
+                ForEach(Language.allCases, id: \.self) { Text("\($0.flag) \($0.name)").tag($0) }
+            }
+            .pickerStyle(.menu)
+            Divider()
             switch settings.step {
             case .notFound:
                 Text(tr("no_gh_text"))
@@ -241,11 +247,6 @@ struct SettingsView: View {
                 Divider()
                 total
             }
-            Divider()
-            Picker(tr("language"), selection: Binding(get: { settings.language }, set: { settings.setLanguage($0) })) {
-                ForEach(Language.allCases, id: \.self) { Text($0.name).tag($0) }
-            }
-            .pickerStyle(.menu)
         }
         // A fixed width wraps the text; fixedSize() then makes the window follow each step's height.
         .frame(width: 340, alignment: .leading)

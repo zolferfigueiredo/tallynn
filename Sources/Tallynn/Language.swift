@@ -21,6 +21,24 @@ nonisolated enum Language: String, CaseIterable {
         }
     }
 
+    /// An emoji, not a drawn flag, as in ClaudioStat. Portuguese shows Brazil's.
+    var flag: String {
+        switch self {
+        case .de: "🇩🇪"
+        case .en: "🇬🇧"
+        case .es: "🇪🇸"
+        case .fr: "🇫🇷"
+        case .it: "🇮🇹"
+        case .pl: "🇵🇱"
+        case .pt: "🇧🇷"
+        case .ru: "🇷🇺"
+        case .uk: "🇺🇦"
+        case .zh: "🇨🇳"
+        case .ja: "🇯🇵"
+        case .ko: "🇰🇷"
+        }
+    }
+
     /// The one picked in Settings, else the Mac's.
     static var current: Language {
         UserDefaults.standard.string(forKey: "language").flatMap(Language.init) ?? system
