@@ -32,9 +32,9 @@ nonisolated func ghPath() -> String? {
     return process.terminationStatus == 0 ? String(decoding: data, as: UTF8.self) : nil
 }
 
-/// Every public, non-fork repository of the gh user, counted like the author's script. Any failure fails the
-/// whole refresh, so a repository that couldn't be read never looks like a drop.
-nonisolated func fetchCounts() async -> Result<Counts, Problem> {
+/// Every public, non-fork repository of the gh user and its releases, counted like the author's script. Any
+/// failure fails the whole refresh, so a repository that couldn't be read never looks like a drop.
+nonisolated func fetchReleases() async -> Result<[String: [Release]], Problem> {
     guard let path = ghPath() else { return .failure(.notFound) }
     guard let list = await gh(path, ["repo", "list", "--visibility", "public", "--source", "--limit", "1000",
                                      "--json", "name,nameWithOwner"]),
@@ -42,13 +42,13 @@ nonisolated func fetchCounts() async -> Result<Counts, Problem> {
         // `auth token` only reads the local login, so being offline isn't mistaken for being logged out.
         return .failure(await gh(path, ["auth", "token"]) == nil ? .loggedOut : .failed)
     }
-    var counts: Counts = [:]
+    var releases: [String: [Release]] = [:]
     for repo in repos {
-        guard let assets = await gh(path, ["api", "repos/\(repo.nameWithOwner)/releases", "--paginate",
-                                           "--jq", #".[].assets[] | "\(.name)\t\(.download_count)""#]) else {
+        guard let assets = await gh(path, ["api", "repos/\(repo.nameWithOwner)/releases", "--paginate", "--jq",
+                                           #".[] | .tag_name as $tag | .assets[] | "\($tag)\t\(.name)\t\(.download_count)""#]) else {
             return .failure(.failed)
         }
-        counts[repo.name] = installerDownloads(assets)
+        releases[repo.name] = releaseDownloads(assets)
     }
-    return .success(counts)
+    return .success(releases)
 }

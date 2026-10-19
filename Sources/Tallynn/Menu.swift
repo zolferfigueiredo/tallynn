@@ -26,18 +26,22 @@ extension AppDelegate {
             add(problemText(problem)).image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: nil)
             menu.addItem(.separator())
         }
+        // Badges sit at the right edge, in the column ⌘Q and the submenu arrows use, so counts line up with the border.
         if let counts {
-            for row in menuRows(counts) { add("").attributedTitle = countTitle(row.repo, row.count, bold: false) }
-            add("").attributedTitle = countTitle("TOTAL", total(counts), bold: true)
+            let releases = releases
+            for row in menuRows(counts) {
+                let entry = add(row.repo)
+                entry.badge = NSMenuItemBadge(string: row.count.formatted())
+                entry.submenu = versionsMenu(releases[row.repo] ?? [])
+            }
+            menu.addItem(.separator())
         }
         if let lastRefresh {
             add("Updated \(lastRefresh.formatted(date: .omitted, time: .shortened))", enabled: false)
         } else if problem == nil {
             add("Counting downloads…", enabled: false)
         }
-        menu.addItem(.separator())
-
-        add("Refresh Now", #selector(refreshNow), enabled: !busy, key: "r")
+        add("Refresh", #selector(refreshNow), enabled: !busy, key: "r")
         let every = NSMenu()
         for minutes in [5, 10, 30, 60] {
             let entry = NSMenuItem(title: minutes == 60 ? "1 hour" : "\(minutes) minutes", action: #selector(chooseInterval), keyEquivalent: "")
@@ -46,7 +50,7 @@ extension AppDelegate {
             entry.state = defaults.integer(forKey: "interval") == minutes ? .on : .off
             every.addItem(entry)
         }
-        add("Refresh Every").submenu = every
+        add("Refresh rate").submenu = every
         menu.addItem(.separator())
 
         // Registering from anywhere else (a build in /tmp) would point the login item at a bundle that disappears.
@@ -54,8 +58,23 @@ extension AppDelegate {
             enabled: Bundle.main.bundlePath.hasPrefix("/Applications/"))
         add("Keep in Dock", #selector(toggleDock), on: inDock())
         menu.addItem(.separator())
+        add("About Tallynn", #selector(showAbout)).image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: nil)
         let quit = add("Quit Tallynn", #selector(NSApplication.terminate), key: "q")
         quit.target = NSApp
+    }
+
+    /// A repository's releases with downloads, newest first, each with its count at the right edge.
+    func versionsMenu(_ releases: [Release]) -> NSMenu? {
+        let shown = releases.filter { $0.downloads > 0 }
+        guard !shown.isEmpty else { return nil }
+        let menu = NSMenu()
+        menu.autoenablesItems = false  // rows without an action would otherwise be greyed out
+        for release in shown {
+            let entry = NSMenuItem(title: release.tag, action: nil, keyEquivalent: "")
+            entry.badge = NSMenuItemBadge(string: release.downloads.formatted())
+            menu.addItem(entry)
+        }
+        return menu
     }
 
     func problemText(_ problem: Problem) -> String {
@@ -64,17 +83,6 @@ extension AppDelegate {
         case .loggedOut: "Not logged in. Run in Terminal: gh auth login"
         case .failed: "Couldn’t refresh"
         }
-    }
-
-    /// The name, then the count right-aligned in a fixed column with digits of equal width.
-    func countTitle(_ name: String, _ count: Int, bold: Bool) -> NSAttributedString {
-        let size = NSFont.menuFont(ofSize: 0).pointSize
-        let style = NSMutableParagraphStyle()
-        style.tabStops = [NSTextTab(textAlignment: .right, location: 180)]
-        return NSAttributedString(string: "\(name)\t\(count.formatted())", attributes: [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: size, weight: bold ? .semibold : .regular),
-            .paragraphStyle: style,
-        ])
     }
 
     @objc func refreshNow() { tick() }
