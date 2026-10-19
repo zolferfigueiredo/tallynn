@@ -2,12 +2,13 @@ schema: spec-driven
 
 context: |
   App name: Tallynn (Tally + Tallinn). Tallinn's Old Town inspires the icon art.
-  macOS menu bar app (user runs macOS 26), no windows. Behaves like the author's
-  ClaudioStat and Deploydz: LSUIElement, optional "Keep in Dock" pin, and opening
-  the app again (Dock click) pops the menu up at the pointer.
+  macOS menu bar app (user runs macOS 26). Its only windows are Settings (sign-in,
+  repository choice) and About. Behaves like the author's ClaudioStat and Deploydz:
+  LSUIElement, optional "Keep in Dock" pin, and opening the app again (Dock click)
+  pops the menu up at the pointer.
   Follow ~/www/claudiostat conventions: SwiftPM, AppKit NSStatusItem, run.sh/build.sh.
-  Personal tool; relies on the GitHub CLI (gh) being installed and logged in.
-  No third-party dependencies.
+  Signs in with the GitHub OAuth device flow (public client ID in Info.plist, token
+  only in the login Keychain); no gh CLI. No third-party dependencies.
 
 # Project context (optional)
 # Add only constraints that should guide OpenSpec artifacts and workflows.

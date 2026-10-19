@@ -61,6 +61,9 @@ extension AppDelegate {
             every.addItem(entry)
         }
         add("Refresh rate").submenu = every
+        menu.addItem(.separator())
+
+        add("Settings…", #selector(showSettings), key: ",").image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
         let totals = NSMenu()
         totals.autoenablesItems = false
         for (title, key, on, other) in [("Menu bar", "totalInMenuBar", places.menuBar, places.list),
@@ -74,8 +77,6 @@ extension AppDelegate {
         }
         add("Total").submenu = totals
         menu.addItem(.separator())
-
-        add("Settings…", #selector(showSettings), key: ",").image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
 
         // Registering from anywhere else (a build in /tmp) would point the login item at a bundle that disappears.
         add("Launch at Login", #selector(toggleLogin), on: SMAppService.mainApp.status == .enabled,

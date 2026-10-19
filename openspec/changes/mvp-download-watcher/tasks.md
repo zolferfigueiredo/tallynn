@@ -12,7 +12,7 @@
 - [x] 2.1 Add `Sources/Tallynn/Counts.swift` with pure functions `installerDownloads` (filters gh's `name<TAB>downloads` lines to installers), `total`, `menuRows`, `changes(old:new:)` (absent counts as 0, dropped repos ignored, nil `old` means baseline and no changes) and `notificationBody` (`"theej +3 (364)"`, `"claudiostat -30 (400)"`, one line per change, sorted by name)
 - [x] 2.2 Add `Tests/TallynnTests/CountsTests.swift` covering the spec scenarios: installer-only asset sum (360), total 411, single change, multiple changes in one body, decrease, baseline produces nothing, new repo `+2 (2)`, dropped repo produces nothing; verify `swift test` passes
 
-## 3. GitHub through gh
+## 3. GitHub through gh (replaced by group 10: Tallynn signs in with GitHub instead)
 
 - [x] 3.1 Add `Sources/Tallynn/GitHub.swift`: `ghPath()` (`/opt/homebrew/bin/gh`, `/usr/local/bin/gh`), a nonisolated async `run(_ args:)` built on `Process`, `listRepos()` (`gh repo list --visibility public --source --limit 1000 --json nameWithOwner,name`) and `count(_ repo:)` (`gh api ... --paginate --jq` emitting `name<TAB>downloads` per asset, summed with `installerDownloads`)
 - [x] 3.2 Add `fetchCounts() async -> Result` returning all counts or a problem (`.notFound`, `.loggedOut` via `gh auth status`, `.failed`), with any single failure failing the whole refresh; log the counts with `Logger` and verify they match the author's shell script exactly (`log stream --predicate 'subsystem == "com.zolfer.tallynn"'`)
@@ -31,7 +31,7 @@
 
 - [x] 6.1 Show the Tallynn icon plus `total.formatted()` in the menu bar (icon alone before any counts); verify against the spec's "Menu bar item" scenarios
 - [x] 6.2 Build the menu in `menuNeedsUpdate(_:)`: problem line, repo rows with count > 0 (highest first, counts as `NSMenuItemBadge` at the right edge), TOTAL, "Updated HH:mm", Refresh now, Every submenu (5/10/30/60, current one checked, calls `reschedule()`), Launch at login (`SMAppService.mainApp`, as in ClaudioStat), Quit; verify the script's example data shows five repos, "TOTAL 1,111" and no zolferfigueiredo row
-- [ ] 6.3 Show the problem texts from the spec for gh missing (temporarily point `ghPath()` at a bad path), logged out (`gh auth logout` on a test account, or a stubbed result) and network failure; verify each message and that the menu bar keeps the last total
+- [ ] 6.3 Show the problem lines from the spec: signed out ("Sign in to GitHub…", which opens Settings) and a failed refresh ("Couldn’t refresh", the menu bar keeping the last total); verify each on screen, the failure by relaunching with `open -n --env HTTPS_PROXY=http://127.0.0.1:9 /Applications/Tallynn.app`
 - [x] 6.4 Copy `~/www/claudiostat/Sources/ClaudioStat/Dock.swift`, add the Keep in Dock item and `applicationShouldHandleReopen` popping the menu at `NSEvent.mouseLocation`; verify pinning, unpinning, the checkmark state, and that a Dock click and opening from Spotlight both show the menu at the pointer
 
 ## 7. Icons
@@ -53,9 +53,21 @@
 - [x] 9.5 Replace the About window with one laid out like BeeHan Brightness's (icon, name, Made by, version, separator, GitHub, Buy me a coffee); verify it opens from About Tallynn and every link works
 - [x] 9.6 Redraw the icons: the app icon as a flat white gate (1.08 size, 0.95 width, on the bottom edge, black door) on Estonian blue fading to black, and the menu bar template without the arrow; verify the Dock and menu bar show them
 
-## 10. Integration check
+## 10. Sign in with GitHub and repository choice
 
-- [ ] 10.1 Run the installed app alongside the author's shell script for a day at a 5-minute interval: totals always match, every real download produces exactly one notification, and relaunching or waking from sleep never sends a spurious one
+- [x] 10.1 Add pure functions and tests: `releaseDownloads` on decoded release JSON, `nextPage` for `Link` headers, `sourceRepos` (no forks, Finder order), the silent-baseline `changes`, `migratedShownRepos`, `totalPlaces`; verify `swift test` passes
+- [x] 10.2 Rewrite `GitHub.swift` as a REST client on an ephemeral, cache-free `URLSession` (`/user`, `/user/repos`, releases, `Link` pagination, 401 as signed out) with the OAuth device flow (`requestDeviceCode`, `pollForToken`), deleting every use of gh; verify `swift build` succeeds and no gh call is left in `Sources`
+- [ ] 10.3 Add `Keychain.swift` keeping the token as one generic password in the login keychain; verify after a real sign-in that Keychain Access shows `com.zolfer.tallynn` and that `gho_` appears in neither `defaults read com.zolfer.tallynn` nor the app's log
+- [x] 10.4 Migrate `shownRepos` from the saved counts at launch; verify `defaults read com.zolfer.tallynn shownRepos` lists the repositories that had downloads
+- [ ] 10.5 Hold the token in memory and handle sign in, sign out (clears counts, releases, last refresh; keeps picks), another account (clears picks), stale results and ticks during a refresh; verify with a real sign-in that the first refresh notifies nothing and Sign Out clears the keys and the Keychain item
+- [ ] 10.6 Add the Settings window (`Settings.swift`, like ClaudioStat's setup window): sign in with the code, Copy Code & Open GitHub, Cancel, Sign Out, and the repository checkboxes with locks and reload; verify on screen that it opens at launch while signed out and that ticking a private repository adds it to the menu without a notification
+- [ ] 10.7 Update the menu: Settings… (⌘,) then Total (Menu bar, List; the last one on disabled) with a separator after it, the optional TOTAL row, "Sign in to GitHub…" and "Choose Repositories…"; verify the order and every Total combination on screen
+- [x] 10.8 Add `GitHubClientID` to Info.plist, sign with the Developer ID identity in `run.sh` and `build.sh`, and document the OAuth app, the `repo` scope and revoking in the README; verify `codesign -dv dist/Tallynn.app` shows the team identifier
+- [ ] 10.9 With the author's OAuth app registered and its client ID in Info.plist, run the whole flow: sign in, tick a private repository, a real download notifies once, revoke on GitHub and see Tallynn sign out
+
+## 11. Integration check
+
+- [ ] 11.1 Run the installed app alongside the author's shell script for a day at a 5-minute interval: totals always match, every real download produces exactly one notification, and relaunching or waking from sleep never sends a spurious one
 
 ## Workflow follow-up
 

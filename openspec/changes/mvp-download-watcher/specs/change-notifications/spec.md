@@ -39,16 +39,24 @@ The first successful refresh after the app has no saved counts SHALL save them a
 - **WHEN** the app relaunches and its first refresh matches the saved counts
 - **THEN** no notification is posted
 
-### Requirement: Repositories appearing and disappearing
-Once a baseline exists, a repository with no saved count SHALL be compared as if it had 0. A repository that is no longer listed SHALL be dropped silently.
+### Requirement: Newly shown repositories
+A repository with no saved count, because it was just ticked or this is the first refresh after signing in, SHALL be saved as a baseline without a notification; its later changes SHALL be notified. A repository that is unticked or no longer listed SHALL be dropped silently.
 
-#### Scenario: First download on a new repository
-- **WHEN** a repository not seen before has 2 downloads
-- **THEN** the notification says "newapp +2 (2)"
+#### Scenario: Ticking a repository with downloads
+- **WHEN** the user ticks newapp, which already has 250 downloads
+- **THEN** no notification is posted and 250 is saved
 
-#### Scenario: Repository made private
-- **WHEN** a previously counted repository is no longer listed
+#### Scenario: Next download after ticking
+- **WHEN** newapp then goes from 250 to 251
+- **THEN** the notification says "newapp +1 (251)"
+
+#### Scenario: Unticking
+- **WHEN** the user unticks a repository
 - **THEN** it is removed from the saved counts and no notification is posted
+
+#### Scenario: Signing in again
+- **WHEN** the same account signs in again after signing out
+- **THEN** the first refresh posts no notification
 
 ### Requirement: Notification permission
 The app SHALL ask for notification permission (alerts and sound) the first time it needs to post. If permission is denied, counts SHALL still update and save.
