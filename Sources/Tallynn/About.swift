@@ -38,6 +38,17 @@ extension AppDelegate {
         page.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
         page.widthAnchor.constraint(greaterThanOrEqualToConstant: 340).isActive = true
         line.widthAnchor.constraint(equalTo: page.widthAnchor, constant: -48).isActive = true
-        return page
+        // Centred in whatever room the tab gets: the window can keep the General tab's size.
+        let room = NSView()
+        page.translatesAutoresizingMaskIntoConstraints = false
+        room.addSubview(page)
+        NSLayoutConstraint.activate([
+            page.centerXAnchor.constraint(equalTo: room.centerXAnchor),
+            page.centerYAnchor.constraint(equalTo: room.centerYAnchor),
+            page.leadingAnchor.constraint(greaterThanOrEqualTo: room.leadingAnchor),
+            page.topAnchor.constraint(greaterThanOrEqualTo: room.topAnchor),
+        ])
+        room.frame.size = page.fittingSize
+        return room
     }
 }
