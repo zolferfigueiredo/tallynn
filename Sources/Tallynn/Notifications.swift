@@ -1,0 +1,24 @@
+import Foundation
+import UserNotifications
+
+/// One notification for everything that changed in a refresh, asking for permission the first time.
+func notify(_ changes: [Change]) {
+    Task {
+        let center = UNUserNotificationCenter.current()
+        guard (try? await center.requestAuthorization(options: [.alert, .sound])) == true else { return }
+        let content = UNMutableNotificationContent()
+        content.title = "Tallynn"
+        content.body = notificationBody(changes)
+        content.sound = .default
+        // A new id each time, so earlier changes stay in Notification Center.
+        try? await center.add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
+    }
+}
+
+extension AppDelegate: UNUserNotificationCenterDelegate {
+    /// Shown even while the menu is open, which makes the app frontmost.
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+                                            withCompletionHandler done: @escaping (UNNotificationPresentationOptions) -> Void) {
+        done([.banner, .sound, .list])
+    }
+}
