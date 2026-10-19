@@ -162,7 +162,15 @@ extension AppDelegate {
         }
     }
 
-    func windowWillClose(_ notification: Notification) { cancel() }
+    // Not kept once closed: its SwiftUI views hold about 28 MB. AppKit keeps the last key window alive, so its
+    // content is dropped too. After this call, as AppKit is still closing it.
+    func windowWillClose(_ notification: Notification) {
+        cancel()
+        DispatchQueue.main.async { [window] in
+            window?.contentViewController = nil
+            if settingsWindow === window { settingsWindow = nil }
+        }
+    }
 }
 
 struct SettingsView: View {
