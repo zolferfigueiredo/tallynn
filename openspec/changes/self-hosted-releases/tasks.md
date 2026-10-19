@@ -19,5 +19,5 @@
 
 ## 4. First release
 
-- [ ] 4.1 After the pull request is merged, verify the run succeeds on `tallynn-mac`, `v0.2.0` has `Tallynn-0.2.0.dmg`, and the downloaded DMG passes `xcrun stapler validate` and `spctl -a -t open --context context:primary-signature`
-- [ ] 4.2 Verify GitHub Billing shows no GitHub-hosted Actions minutes used by tallynn
+- [x] 4.1 After the pull request is merged, verify the run succeeds on `tallynn-mac`, `v0.2.0` has `Tallynn-0.2.0.dmg`, and the downloaded DMG passes `xcrun stapler validate` and `spctl -a -t open --context context:primary-signature`
+- [x] 4.2 Verify GitHub Billing shows no GitHub-hosted Actions minutes used by tallynn
