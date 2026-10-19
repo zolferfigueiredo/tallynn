@@ -14,6 +14,7 @@
 <p align="center">
   <a href="https://www.swift.org"><img src="https://img.shields.io/badge/Swift-6.2-orange" alt="Swift 6.2"></a>
   <img src="https://img.shields.io/badge/Platform-macOS%2026%2B-blue" alt="macOS 26 or later">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/GitHub_Actions-%240-brightgreen" alt="GitHub Actions: $0">
 </p>
 
@@ -97,6 +98,10 @@ The plan lives in `openspec/`: see `openspec/changes/` for the proposals, specs,
 ## Disclaimer
 
 Unofficial. Not affiliated with or endorsed by GitHub. It uses the GitHub CLI and GitHub's public REST API.
+
+## License
+
+[MIT](LICENSE)
 
 ---
 
