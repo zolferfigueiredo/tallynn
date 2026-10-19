@@ -63,6 +63,7 @@
 - [ ] 10.6 Add the Settings window (`Settings.swift`, like ClaudioStat's setup window): GitHub CLI missing, Sign in with GitHub, the copied code with Cancel and Open GitHub Again, Sign Out, and the repository checkboxes with locks and reload; verify on screen that it shows the signed-in account and that ticking a private repository adds it to the menu without a notification
 - [ ] 10.7 Update the menu: Settings… (⌘,) then Total (Menu bar, List; the last one on disabled) with a separator after it, the optional TOTAL row, "Install the GitHub CLI…", "Sign in to GitHub…" and "Choose Repositories…"; verify the order and every Total combination on screen
 - [ ] 10.8 Document signing in through the GitHub CLI, the repository picker and the Total menu in the README; verify the steps work as written
+- [ ] 10.10 Add a Total section to Settings (Menu bar, List; the last one on disabled) sharing `setTotal` with the menu's Total submenu; verify on screen that a change in either place shows at once in the other
 - [ ] 10.9 Run the whole flow: sign in, tick a private repository, a real download notifies once, sign out and back in without notifications
 
 ## 11. Integration check

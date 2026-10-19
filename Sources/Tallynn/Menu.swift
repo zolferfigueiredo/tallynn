@@ -110,8 +110,14 @@ extension AppDelegate {
 
     @objc func toggleTotal(_ sender: NSMenuItem) {
         guard let key = sender.representedObject as? String else { return }
-        defaults.set(sender.state != .on, forKey: key)
+        setTotal(key, sender.state != .on)
+    }
+
+    /// The menu's Total submenu and Settings both land here, so they always agree.
+    func setTotal(_ key: String, _ on: Bool) {
+        defaults.set(on, forKey: key)
         render()
+        (settingsWindow?.delegate as? SettingsModel)?.loadTotal()
     }
 
     @objc func chooseInterval(_ sender: NSMenuItem) {

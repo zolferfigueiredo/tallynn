@@ -34,6 +34,8 @@ extension AppDelegate {
     var repos: [Repo]?  // nil while loading
     var loadFailed = false
     var shown: Set<String> = []
+    var totalInMenuBar = true
+    var totalInList = false
     @ObservationIgnored weak var window: NSWindow?
     @ObservationIgnored var signingIn: Task<Void, Never>?
 
@@ -43,11 +45,14 @@ extension AppDelegate {
 
     func start() {
         shown = app.shownRepos
+        loadTotal()
         if app.token != nil { return signedIn(app.defaults.string(forKey: "login") ?? "GitHub") }
         guard signingIn == nil else { return }
         repos = nil
         step = ghPath() == nil ? .notFound : .signedOut
     }
+
+    func loadTotal() { (totalInMenuBar, totalInList) = app.places }
 
     func signedIn(_ login: String) {
         step = .signedIn(login)
@@ -183,6 +188,8 @@ struct SettingsView: View {
                     }
                     Divider()
                     repositories
+                    Divider()
+                    total
                 }
             }
             // A fixed width wraps the text; fixedSize() then makes the window follow each step's height.
@@ -230,6 +237,17 @@ struct SettingsView: View {
         } else {
             waiting("Loading repositories…")
         }
+    }
+
+    /// Where the total shows, as in the menu's Total submenu. The last place still on can't be turned off.
+    @ViewBuilder var total: some View {
+        Text("Total").font(.headline)
+        Toggle("Menu bar", isOn: Binding(get: { settings.totalInMenuBar }, set: { settings.app.setTotal("totalInMenuBar", $0) }))
+            .toggleStyle(.checkbox)
+            .disabled(settings.totalInMenuBar && !settings.totalInList)
+        Toggle("List", isOn: Binding(get: { settings.totalInList }, set: { settings.app.setTotal("totalInList", $0) }))
+            .toggleStyle(.checkbox)
+            .disabled(settings.totalInList && !settings.totalInMenuBar)
     }
 
     func waiting(_ text: String) -> some View {

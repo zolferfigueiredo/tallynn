@@ -81,7 +81,7 @@ Below the counts and a separator, the menu SHALL show the time of the last succe
 - **THEN** the app starts automatically at the next login, and the item shows a checkmark
 
 ### Requirement: Total placement
-The Total submenu SHALL offer Menu bar and List, each checked when on, defaulting to Menu bar on and List off. Either or both MAY be on, but the last one on SHALL NOT be turned off, and the choice SHALL persist.
+The Total submenu, and the Total section in Settings, SHALL offer Menu bar and List, each checked when on, defaulting to Menu bar on and List off. Both places SHALL share one setting. Either or both MAY be on, but the last one on SHALL NOT be turned off, and the choice SHALL persist.
 
 #### Scenario: Default
 - **WHEN** the user has never changed it
@@ -97,14 +97,26 @@ The Total submenu SHALL offer Menu bar and List, each checked when on, defaultin
 
 #### Scenario: Last one on
 - **WHEN** only one placement is on
-- **THEN** its item is disabled, so the total always shows somewhere
+- **THEN** its item in the menu and its checkbox in Settings are disabled, so the total always shows somewhere
+
+#### Scenario: Menu and Settings agree
+- **WHEN** the user turns List on in Settings while it is open, or in the menu
+- **THEN** the other place shows the same choice at once
 
 ### Requirement: Settings window
-Settings SHALL let the user sign in and out and choose repositories. Without the GitHub CLI it SHALL say how to install it; signed out it SHALL offer "Sign in with GitHub"; while signing in it SHALL show the code the GitHub CLI copied, with Cancel and Open GitHub Again; signed in it SHALL show "Signed in as @login" with Sign Out and the user's repositories A to Z as checkboxes, private ones with a lock, and a way to reload the list. Every tick SHALL apply at once.
+Settings SHALL let the user sign in and out through the GitHub CLI, choose the repositories to show, and set where the total shows. Every change SHALL apply at once.
+
+#### Scenario: Signed in
+- **WHEN** Settings opens with an account signed in
+- **THEN** it shows "Signed in as @login" with Sign Out, the user's repositories A to Z as checkboxes with a lock on private ones and a reload button, and a Total section with Menu bar and List checkboxes
+
+#### Scenario: Signed out
+- **WHEN** Settings opens with the GitHub CLI installed but signed out
+- **THEN** it offers "Sign in with GitHub"
 
 #### Scenario: Signing in
 - **WHEN** the user picks Sign in with GitHub
-- **THEN** github.com opens with the code on the clipboard and shown in the window, and after approval the window comes back in front showing the account and its repositories
+- **THEN** github.com opens with the code the GitHub CLI copied, the window shows that code with Cancel and Open GitHub Again, and after approval it comes back in front showing the account and its repositories
 
 #### Scenario: Closing mid sign-in
 - **WHEN** the user closes Settings or picks Cancel while waiting for GitHub
