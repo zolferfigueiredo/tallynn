@@ -129,13 +129,15 @@ func icon(pixels: Int) -> Data {
     }
 }
 
-/// 18 points tall, as wide as the gate needs, with a point of air above and below.
+/// 18 points tall, as wide as the gate needs. The menu bar centres the image in its 22 points, and the numbers'
+/// baseline sits 5.7 points up, so the gate is 14 points tall and starts 3.5 points up the image: its base on the
+/// baseline, its walls as tall as the digits, only the roofs above.
 func menuBar(scale: Int) -> Data {
-    let height = 18 * scale, inner = CGFloat(16 * scale)
+    let s = CGFloat(scale), inner = 14 * s
     let width = Int((inner * silhouetteBounds.width / silhouetteBounds.height).rounded(.up)) + 2 * scale
-    return bitmap(width, height) {
+    return bitmap(width, 18 * scale) {
         silhouette = true
-        var transform = AffineTransform(translationByX: CGFloat(scale), byY: CGFloat(scale))
+        var transform = AffineTransform(translationByX: s, byY: 3.5 * s)
         transform.scale(inner / silhouetteBounds.height)
         transform.translate(x: -silhouetteBounds.minX, y: -silhouetteBounds.minY)
         NSAffineTransform(transform: transform).concat()

@@ -19,7 +19,7 @@
 
 ## 4. Refresh loop and remembered counts
 
-- [ ] 4.1 In `AppDelegate`, register the default `interval` of 10, load `counts`/`lastRefresh` from `UserDefaults`, and add `reschedule()` / `tick()` with a `busy` guard copied from ClaudioStat; verify the log shows a refresh at launch and at each interval (use a temporary 1-minute interval for the check, then remove it)
+- [x] 4.1 In `AppDelegate`, register the default `interval` of 10, load `counts`/`lastRefresh` from `UserDefaults`, and add `reschedule()` / `tick()` with a `busy` guard copied from ClaudioStat; verify the log shows a refresh at launch and at each interval (use a temporary 1-minute interval for the check, then remove it)
 - [ ] 4.2 On success, save `counts` and `lastRefresh`. On failure, keep both and store the problem. Verify that relaunching shows the previous total before the first refresh, and that with Wi-Fi off the counts stay unchanged and a failure is logged
 
 ## 5. Notifications
@@ -41,8 +41,8 @@
 
 ## 8. Release build
 
-- [ ] 8.1 Add `build.sh` adapted from ClaudioStat's (run `swift test`, universal release build, assemble `dist/Tallynn.app` with the icon, ad hoc sign or `SIGN_ID`, `codesign --verify`; no DMG); verify `./build.sh` succeeds and the app runs from `/Applications`
-- [ ] 8.2 Extend `README.md` with `./build.sh` and installing to `/Applications`; verify the steps work as written
+- [x] 8.1 Add `build.sh` adapted from ClaudioStat's (run `swift test`, universal release build, assemble `dist/Tallynn.app` with the icon, ad hoc sign or `SIGN_ID`, `codesign --verify`; no DMG); verify `./build.sh` succeeds and the app runs from `/Applications`
+- [x] 8.2 Extend `README.md` with `./build.sh` and installing to `/Applications`; verify the steps work as written
 
 ## 9. Integration check
 

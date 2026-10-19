@@ -19,4 +19,18 @@ The art comes from Tallinn's Old Town.
 
 This builds a debug `Tallynn.app` in `/tmp/tallynn-run`, quits any running copy, and opens it. Run the tests with `swift test`.
 
+## Build and install
+
+```bash
+./build.sh
+```
+
+This runs the tests and writes a universal `dist/Tallynn.app`, signed ad hoc. Set `SIGN_ID` to your signing identity to sign it with your certificate instead. Then install it:
+
+```bash
+ditto dist/Tallynn.app /Applications/Tallynn.app
+```
+
+Open it from /Applications. A newly opened copy quits any other running copy. Launch at Login is available only for the copy in /Applications.
+
 The plan lives in `openspec/`: see `openspec/changes/mvp-download-watcher/` for the proposal, specs, design and tasks.
