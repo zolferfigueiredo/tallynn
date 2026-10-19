@@ -14,7 +14,7 @@
 
 ## 3. Runner
 
-- [ ] 3.1 Register `~/www/actions-runner/tallynn` with the `release` label as the actions-runner README describes, and verify `gh api repos/zolferfigueiredo/tallynn/actions/runners` shows `tallynn-mac` online
+- [x] 3.1 Register `~/www/actions-runner/tallynn` with the `release` label as the actions-runner README describes, and verify `gh api repos/zolferfigueiredo/tallynn/actions/runners` shows `tallynn-mac` online
 - [ ] 3.2 Add zolferfigueiredo/tallynn to Deploydz's `releases` list next to the five apps, reopen Deploydz when no deploy is running, and verify Tallynn appears under Apps
 
 ## 4. First release
