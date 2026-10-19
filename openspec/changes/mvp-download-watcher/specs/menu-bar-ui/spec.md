@@ -7,7 +7,7 @@ Gives the user an always-visible total and one menu for the per-repository count
 ## ADDED Requirements
 
 ### Requirement: Menu bar only
-The app SHALL run without a running-app indicator in the Dock or the app switcher. Its windows SHALL be Settings and About, opened only on request, except that Settings SHALL open at launch while signed out.
+The app SHALL run without a running-app indicator in the Dock or the app switcher. Its only window SHALL be Settings, opened on request, except that it SHALL open at launch while signed out.
 
 #### Scenario: Launch signed in
 - **WHEN** the app launches with a saved sign-in
@@ -104,11 +104,11 @@ The Total submenu, and the Total section in Settings, SHALL offer Menu bar and L
 - **THEN** the other place shows the same choice at once
 
 ### Requirement: Settings window
-Settings SHALL let the user sign in and out through the GitHub CLI, choose the repositories to show, and set where the total shows. Every change SHALL apply at once.
+Settings SHALL have General and About tabs in its toolbar, its title following the selected tab. General SHALL let the user sign in and out through the GitHub CLI, choose the repositories to show, and set where the total shows, every change applying at once. About SHALL show the app's details.
 
 #### Scenario: Signed in
-- **WHEN** Settings opens with an account signed in
-- **THEN** it shows "Signed in as @login" with Sign Out, the user's repositories A to Z as checkboxes with a lock on private ones and a reload button, and a Total section with Menu bar and List checkboxes
+- **WHEN** Settings opens on General with an account signed in
+- **THEN** General shows, without the app icon, "Signed in as @login" with Sign Out, the user's repositories A to Z as checkboxes with a lock on private ones and a reload button, and a Total section with Menu bar and List checkboxes
 
 #### Scenario: Signed out
 - **WHEN** Settings opens with the GitHub CLI installed but signed out
@@ -130,16 +130,17 @@ Settings SHALL let the user sign in and out through the GitHub CLI, choose the r
 - **WHEN** the user picks Sign Out
 - **THEN** the app first asks, because this also signs the GitHub CLI out on this Mac
 
+#### Scenario: About
+- **WHEN** the user picks About Tallynn in the menu
+- **THEN** Settings opens on its About tab, laid out like BeeHan Brightness's About: the app icon, "Tallynn", "Made by Zolfer Figueiredo" linking to zolfer.com, the version from Info.plist, a separator, a GitHub link to the repository, and "Buy me a coffee"
+
+#### Scenario: Settings from the menu
+- **WHEN** the user picks Settings… in the menu, or opens the app again while signed out
+- **THEN** Settings opens on its General tab
+
 #### Scenario: No GitHub CLI
 - **WHEN** the GitHub CLI isn't installed
 - **THEN** Settings says to install it with Homebrew and offers Try Again and Get GitHub CLI
-
-### Requirement: About window
-About Tallynn SHALL open a window like BeeHan Brightness's About: the app icon, "Tallynn", "Made by Zolfer Figueiredo" linking to zolfer.com, the version, a separator, a GitHub link to the repository, and "Buy me a coffee".
-
-#### Scenario: Open About
-- **WHEN** the user picks About Tallynn
-- **THEN** the About window comes to the front showing the version from the app's Info.plist
 
 ### Requirement: Keep in Dock
 Keep in Dock SHALL pin the app's icon to the Dock or unpin it, like the Dock's own "Keep in Dock" option, and its checkmark SHALL reflect whether the app is currently pinned.

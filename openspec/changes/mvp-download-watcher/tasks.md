@@ -64,6 +64,7 @@
 - [ ] 10.7 Update the menu: Settings… (⌘,) then Total (Menu bar, List; the last one on disabled) with a separator after it, the optional TOTAL row, "Install the GitHub CLI…", "Sign in to GitHub…" and "Choose Repositories…"; verify the order and every Total combination on screen
 - [ ] 10.8 Document signing in through the GitHub CLI, the repository picker and the Total menu in the README; verify the steps work as written
 - [ ] 10.10 Add a Total section to Settings (Menu bar, List; the last one on disabled) sharing `setTotal` with the menu's Total submenu; verify on screen that a change in either place shows at once in the other
+- [ ] 10.11 Give Settings General and About tabs in its toolbar (`NSTabViewController`, toolbar style), remove the app icon from General, move the About page into the About tab and delete the separate About window; verify on screen that Settings… opens General, About Tallynn opens About, the title follows the tab, and the window fits each tab
 - [ ] 10.9 Run the whole flow: sign in, tick a private repository, a real download notifies once, sign out and back in without notifications
 
 ## 11. Integration check

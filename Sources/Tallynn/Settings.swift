@@ -1,24 +1,45 @@
 import AppKit
 import SwiftUI
 
-/// Signing in and picking repositories. Built like ClaudioStat's setup window.
+/// One window with General (signing in, repositories, Total) and About tabs, in the toolbar like System Settings.
 var settingsWindow: NSWindow?
 
+enum SettingsTab: Int { case general, about }
+
 extension AppDelegate {
-    @objc func showSettings() {
+    @objc func showSettings() { openSettings(.general) }
+    @objc func showAbout() { openSettings(.about) }
+
+    func openSettings(_ tab: SettingsTab) {
         NSApp.activate()
         // Opening it again mid sign-in must not cancel that sign-in.
-        if let window = settingsWindow, window.isVisible { return window.makeKeyAndOrderFront(nil) }
+        if let window = settingsWindow, window.isVisible {
+            (window.contentViewController as? NSTabViewController)?.selectedTabViewItemIndex = tab.rawValue
+            return window.makeKeyAndOrderFront(nil)
+        }
         let settings = SettingsModel(app: self)
-        let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(settings: settings)))
+        let general = NSHostingController(rootView: SettingsView(settings: settings))
+        general.sizingOptions = .preferredContentSize  // the window follows each sign-in step's height
+        general.title = "General"
+        let about = NSViewController()
+        about.view = aboutPage()
+        about.title = "About"
+        about.preferredContentSize = about.view.fittingSize
+        let tabs = NSTabViewController()
+        tabs.tabStyle = .toolbar
+        for (page, symbol) in [(general as NSViewController, "gearshape"), (about, "info.circle")] {
+            let item = NSTabViewItem(viewController: page)
+            item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: page.title)
+            tabs.addTabViewItem(item)
+        }
+        tabs.selectedTabViewItemIndex = tab.rawValue
+        let window = NSWindow(contentViewController: tabs)
         window.styleMask = [.titled, .closable]
-        window.title = "Tallynn Settings"
+        window.toolbarStyle = .preference
         window.isReleasedWhenClosed = false
         window.delegate = settings
         settings.window = window
         settings.start()
-        // The hosting controller only sizes the window once shown, too late for center().
-        window.setContentSize(window.contentView!.fittingSize)
         window.center()
         window.makeKeyAndOrderFront(nil)
         settingsWindow = window
@@ -148,53 +169,48 @@ struct SettingsView: View {
     let settings: SettingsModel
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 64, height: 64)
-            VStack(alignment: .leading, spacing: 12) {
-                switch settings.step {
-                case .notFound:
-                    Text("Tallynn signs in through the GitHub CLI, which isn’t installed. Install it with Homebrew: brew install gh")
-                    buttons {
-                        Button("Try Again") { settings.start() }
-                        Button("Get GitHub CLI") { NSWorkspace.shared.open(URL(string: "https://cli.github.com/")!) }
-                            .keyboardShortcut(.defaultAction)
-                    }
-                case .signedOut:
-                    Text("Sign in with your GitHub account to count the downloads of your public and private repositories.")
-                    if let failure = settings.failure { Text(failure).foregroundStyle(.red) }
-                    buttons {
-                        Button("Sign in with GitHub") { settings.signIn() }.keyboardShortcut(.defaultAction)
-                    }
-                case .signingIn(let code):
-                    if let code {
-                        Text("GitHub opened in your browser. Paste this code there, then approve:")
-                        Text(code)
-                            .font(.system(size: 28, weight: .semibold, design: .monospaced))
-                            .textSelection(.enabled)
-                        Text("It’s already on the clipboard.").foregroundStyle(.secondary)
-                    }
-                    waiting("Waiting for GitHub…")
-                    buttons {
-                        Button("Cancel") { settings.cancel() }.keyboardShortcut(.cancelAction)
-                        if code != nil { Button("Open GitHub Again") { settings.openGitHubAgain() } }
-                    }
-                case .signedIn(let login):
-                    HStack {
-                        Text("Signed in as @\(login)")
-                        Spacer()
-                        Button("Sign Out") { settings.signOut() }
-                    }
-                    Divider()
-                    repositories
-                    Divider()
-                    total
+        VStack(alignment: .leading, spacing: 12) {
+            switch settings.step {
+            case .notFound:
+                Text("Tallynn signs in through the GitHub CLI, which isn’t installed. Install it with Homebrew: brew install gh")
+                buttons {
+                    Button("Try Again") { settings.start() }
+                    Button("Get GitHub CLI") { NSWorkspace.shared.open(URL(string: "https://cli.github.com/")!) }
+                        .keyboardShortcut(.defaultAction)
                 }
+            case .signedOut:
+                Text("Sign in with your GitHub account to count the downloads of your public and private repositories.")
+                if let failure = settings.failure { Text(failure).foregroundStyle(.red) }
+                buttons {
+                    Button("Sign in with GitHub") { settings.signIn() }.keyboardShortcut(.defaultAction)
+                }
+            case .signingIn(let code):
+                if let code {
+                    Text("GitHub opened in your browser. Paste this code there, then approve:")
+                    Text(code)
+                        .font(.system(size: 28, weight: .semibold, design: .monospaced))
+                        .textSelection(.enabled)
+                    Text("It’s already on the clipboard.").foregroundStyle(.secondary)
+                }
+                waiting("Waiting for GitHub…")
+                buttons {
+                    Button("Cancel") { settings.cancel() }.keyboardShortcut(.cancelAction)
+                    if code != nil { Button("Open GitHub Again") { settings.openGitHubAgain() } }
+                }
+            case .signedIn(let login):
+                HStack {
+                    Text("Signed in as @\(login)")
+                    Spacer()
+                    Button("Sign Out") { settings.signOut() }
+                }
+                Divider()
+                repositories
+                Divider()
+                total
             }
-            // A fixed width wraps the text; fixedSize() then makes the window follow each step's height.
-            .frame(width: 320, alignment: .leading)
         }
+        // A fixed width wraps the text; fixedSize() then makes the window follow each step's height.
+        .frame(width: 340, alignment: .leading)
         .padding(20)
         .fixedSize()
     }

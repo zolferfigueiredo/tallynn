@@ -2,8 +2,8 @@ schema: spec-driven
 
 context: |
   App name: Tallynn (Tally + Tallinn). Tallinn's Old Town inspires the icon art.
-  macOS menu bar app (user runs macOS 26). Its only windows are Settings (sign-in,
-  repository choice) and About. Behaves like the author's ClaudioStat and Deploydz:
+  macOS menu bar app (user runs macOS 26). Its only window is Settings, with General
+  (sign-in, repositories, Total) and About tabs. Behaves like the author's ClaudioStat and Deploydz:
   LSUIElement, optional "Keep in Dock" pin, and opening the app again (Dock click)
   pops the menu up at the pointer.
   Follow ~/www/claudiostat conventions: SwiftPM, AppKit NSStatusItem, run.sh/build.sh.
