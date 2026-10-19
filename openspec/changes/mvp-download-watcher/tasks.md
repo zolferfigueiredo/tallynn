@@ -50,8 +50,8 @@
 - [x] 9.2 Rename Refresh Now to Refresh and Refresh Every to Refresh rate, move "Updated" below the separator just above Refresh, and put About Tallynn directly above Quit with no separator; verify the menu order on screen
 - [x] 9.3 Keep per-release downloads: gh's jq emits `tag<TAB>name<TAB>downloads`, `releaseDownloads` sums installers per release, `repoCounts` derives the counts, and `releases` is saved as JSON next to `counts`; verify the new unit tests pass and the saved releases sum to the logged counts
 - [x] 9.4 Give each repository row a submenu of its releases with downloads (newest first, counts as `NSMenuItemBadge`, zero releases hidden); verify on screen
-- [ ] 9.5 Replace the About window with one laid out like BeeHan Brightness's (icon, name, Made by, version, separator, GitHub, Buy me a coffee); verify it opens from About Tallynn and every link works
-- [ ] 9.6 Redraw the icons: the app icon as a white gate (0.92 size, on the bottom edge, black door) on Estonian blue fading to black, and the menu bar template without the arrow; verify the Dock and menu bar show them
+- [x] 9.5 Replace the About window with one laid out like BeeHan Brightness's (icon, name, Made by, version, separator, GitHub, Buy me a coffee); verify it opens from About Tallynn and every link works
+- [x] 9.6 Redraw the icons: the app icon as a flat white gate (1.08 size, 0.95 width, on the bottom edge, black door) on Estonian blue fading to black, and the menu bar template without the arrow; verify the Dock and menu bar show them
 
 ## 10. Integration check
 

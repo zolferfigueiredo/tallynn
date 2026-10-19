@@ -31,7 +31,6 @@ func cone(x: CGFloat, width w: CGFloat, top: CGFloat, height r: CGFloat) -> NSBe
 /// between them, its base at y 200. The door is filled with `door`, or cut right through without one.
 func gate(_ color: NSColor, door: NSColor? = nil) -> NSImage {
     NSImage(size: NSSize(width: 1024, height: 1024), flipped: false) { _ in
-        color.setFill()
         let shape = rect(372, 200, 652, 500)
         var x: CGFloat = 372
         while x + 27.6 <= 652.5 {
@@ -42,6 +41,7 @@ func gate(_ color: NSColor, door: NSColor? = nil) -> NSImage {
             shape.append(rect(left, 200, left + 192, 610))
             shape.append(cone(x: left, width: 192, top: 610, height: 205))
         }
+        color.setFill()
         shape.fill()
         let arch = rect(450, 200, 574, 392)
         arch.appendOval(in: NSRect(x: 450, y: 330, width: 124, height: 124))
@@ -54,9 +54,9 @@ func gate(_ color: NSColor, door: NSColor? = nil) -> NSImage {
 /// The gate's extent on its canvas.
 let gateBounds = NSRect(x: 176, y: 200, width: 672, height: 615)
 
-/// Draws the gate scaled by `scale` about its centre line, its base at `base`.
-func place(_ image: NSImage, scale: CGFloat, base: CGFloat) {
-    let width = gateBounds.width * scale, height = gateBounds.height * scale
+/// Draws the gate scaled by `scale` about its centre line, its base at `base`, its width further scaled by `narrow`.
+func place(_ image: NSImage, scale: CGFloat, base: CGFloat, narrow: CGFloat = 1) {
+    let width = gateBounds.width * scale * narrow, height = gateBounds.height * scale
     image.draw(in: NSRect(x: 512 - width / 2, y: base, width: width, height: height), from: gateBounds,
                operation: .sourceOver, fraction: 1)
 }
@@ -101,7 +101,8 @@ func icon(pixels: Int) -> Data {
         NSGraphicsContext.saveGraphicsState()
         plate.addClip()
         NSGradient(colors: [black, rgb(0x003E73), blue])!.draw(in: plate, angle: 90)
-        place(gate(.white, door: black), scale: 0.92, base: 100)  // standing on the bottom edge
+        // Flat white: in the Dock, macOS shades it from white to grey and lights the rim on its own.
+        place(gate(.white, door: black), scale: 1.08, base: 100, narrow: 0.95)  // standing on the bottom edge
         NSGraphicsContext.restoreGraphicsState()
         bevel(plate, light: NSColor(white: 1, alpha: 0.3), dark: NSColor(white: 0, alpha: 0.35), blur: 40 * s, offset: 14 * s)
     }
