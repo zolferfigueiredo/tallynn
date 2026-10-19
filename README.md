@@ -43,6 +43,7 @@ You need:
 - **Public and private.** Pick any of your own repositories in Settings, with a lock on the private ones. New ones stay hidden until you tick them.
 - **The total where you want it.** In the menu bar, as a TOTAL row in the menu, or both.
 - **Never keeps a token.** It reads the GitHub CLI's login on each refresh and keeps it only in memory. It never stores, logs or shows a credential.
+- **Updates itself.** **Check for updates…** finds a new release and installs it in one click, only if it's signed by the same developer. It can check daily or weekly on its own, and tells you once with a notification.
 - **Native and tiny.** A small Swift app in the menu bar, with no Dock icon unless you choose **Keep in Dock**, and then clicking it opens the menu. It can launch at login.
 - **From Tallinn.** The icon is Viru Gate, the two towers that open Tallinn's Old Town.
 
@@ -53,6 +54,7 @@ Every 5, 10, 30 or 60 minutes, and when you choose **Refresh**, Tallynn asks Git
 - It asks the GitHub CLI for its token (`gh auth token`) on each refresh, so signing in, out or switching accounts in Terminal is followed straight away. **Sign in with GitHub** runs the CLI's own browser sign-in, and **Sign Out** signs the CLI out on this Mac, after asking.
 - It calls GitHub's REST API: `GET /user`, `GET /user/repos` (your own repositories, forks left out) and each ticked repository's releases, page by page. Nothing is cached on disk.
 - It keeps only the last counts and releases, to compare with the next refresh. A refresh that fails keeps them as they were, so a repository that couldn't be read never looks like a drop, and the menu says **Couldn't refresh**.
+- **Check for updates…** asks GitHub for this repository's latest release with the same sign-in, since the repository is private, and downloads its DMG the same way. The token goes only to GitHub's API, not to the download's storage link. An update installs only if the app inside is signed by the same developer, has Tallynn's identifier and the expected version, and only into the copy in Applications. A window shows each step, and **Reopen** starts the new version.
 - Only one copy runs at a time: opening another one, say from the DMG, quits the copy already running.
 
 <details>
@@ -64,7 +66,9 @@ Every 5, 10, 30 or 60 minutes, and when you choose **Refresh**, Tallynn asks Git
   - **General**: your GitHub account, the repositories to count, and the total.
   - **About**: the version, and links to the author, GitHub and Buy me a coffee.
 - **Launch at Login** (from the Applications folder) and **Keep in Dock**, which asks first because macOS restarts the Dock to change it.
-- **About Tallynn** opens Settings on About. **Quit Tallynn** (⌘Q).
+- **About Tallynn** opens Settings on About.
+- **Check for updates…**, which reads **Update available!** once a check finds a new version, and **Check automatically** daily, weekly (default) or never.
+- **Quit Tallynn** (⌘Q).
 
 While signed out, the menu says **Sign in to GitHub…**, and clicking the Dock icon opens Settings. Without the GitHub CLI, it says **Install the GitHub CLI…**.
 
