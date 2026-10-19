@@ -1,0 +1,21 @@
+name: Release
+# Every push to main whose version isn't released yet becomes a release: the self-hosted runner on z's Mac builds,
+# signs, notarizes and publishes it. Nothing runs on GitHub's own machines, which bill minutes on a private repo;
+# self-hosted runs are free and use no artifacts. If that ever changes, ./release.sh by hand does the same.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: release
+jobs:
+  release:
+    name: Build, sign, notarize and publish
+    runs-on: [self-hosted, macOS, release]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      # No GH_TOKEN: gh uses z's own login on this Mac, so the release is zolferfigueiredo's, not github-actions[bot]'s.
+      - run: ./release.sh

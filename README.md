@@ -31,12 +31,20 @@ This builds a debug `Tallynn.app` in `/tmp/tallynn-run`, quits any running copy,
 ./build.sh
 ```
 
-This runs the tests and writes a universal `dist/Tallynn.app`, signed ad hoc. Set `SIGN_ID` to your signing identity to sign it with your certificate instead. Then install it:
+This runs the tests, builds a universal `dist/dmg/Tallynn.app` and writes `dist/Tallynn-<version>.dmg`, laid out by Finder with the app and an Applications shortcut. It's signed ad hoc; set `SIGN_ID` to your signing identity to sign it with your certificate instead. Then open the DMG and drag Tallynn to Applications, or:
 
 ```bash
-ditto dist/Tallynn.app /Applications/Tallynn.app
+ditto dist/dmg/Tallynn.app /Applications/Tallynn.app
 ```
 
 Open it from /Applications. A newly opened copy quits any other running copy. Launch at Login is available only for the copy in /Applications.
 
-The plan lives in `openspec/`: see `openspec/changes/mvp-download-watcher/` for the proposal, specs, design and tasks.
+## Release
+
+Raise both versions in `Info.plist` and merge to main. `.github/workflows/release.yml` then runs `./release.sh` on the self-hosted runner on this Mac: it builds the DMG, signs it with Developer ID, notarizes it, and publishes it as a GitHub release. A version that's already released is skipped.
+
+The repository is private, so nothing runs on GitHub's own machines, which bill minutes there. Self-hosted runs are free, and so are releases and their downloads. Keep the GitHub Actions budget at $0 in Settings > Billing, so a job that ever lands on GitHub's machines fails instead of billing. `./release.sh` by hand does the same without Actions.
+
+One-time setup: a runner for this repository labelled `release` (see "Add a runner" in `~/www/actions-runner`), and the `bihan` notary profile ClaudioStat already uses.
+
+The plan lives in `openspec/`: see `openspec/changes/` for the proposals, specs, designs and tasks.

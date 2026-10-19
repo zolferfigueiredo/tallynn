@@ -1,31 +1,78 @@
 #!/bin/bash
-# Runs the tests and builds a universal dist/Tallynn.app.
+# Runs the tests, builds a universal dist/dmg/Tallynn.app and writes dist/Tallynn-<version>.dmg.
 # Every intermediate (SwiftPM build, caches, module cache, TMPDIR) lives in one /tmp dir deleted on exit.
 set -euo pipefail
 cd "$(dirname "$0")"
+# Finder finds the volume to lay out by name, so every mounted Tallynn volume ("Tallynn 1"...) is ejected first.
+mount | { grep -i " on /Volumes/Tallynn" || true; } | sed 's|^.* on \(/Volumes/[^(]*\) (.*|\1|' |
+    while IFS= read -r volume; do hdiutil detach -quiet -force "$volume"; done
 
+VERSION=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' Info.plist)
+DMG="dist/Tallynn-$VERSION.dmg"
 WORK=$(mktemp -d /tmp/tallynn.XXXXXX)
-trap 'rm -rf "$WORK"' EXIT
+trap 'if [ -n "${MNT:-}" ]; then hdiutil detach -quiet -force "$MNT"; fi; rm -rf "$WORK"' EXIT
 trap 'exit 130' INT TERM
 export TMPDIR="$WORK/tmp" SWIFTPM_MODULECACHE_OVERRIDE="$WORK/modules" CLANG_MODULE_CACHE_PATH="$WORK/modules"
 mkdir -p "$TMPDIR"
 SWIFT_OPTS=(--scratch-path "$WORK/build" --cache-path "$WORK/cache" --config-path "$WORK/config"
             --security-path "$WORK/security" --manifest-cache none)
 RELEASE_OPTS=(-c release --arch arm64 --arch x86_64)
+APP=dist/dmg/Tallynn.app
 
 swift test "${SWIFT_OPTS[@]}"
 swift build "${RELEASE_OPTS[@]}" "${SWIFT_OPTS[@]}"
 BIN=$(swift build "${RELEASE_OPTS[@]}" "${SWIFT_OPTS[@]}" --show-bin-path)
 
-APP=dist/Tallynn.app
-rm -rf "$APP"
+rm -rf dist/dmg
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN/Tallynn" "$APP/Contents/MacOS/"
 cp Info.plist "$APP/Contents/"
 swift -module-cache-path "$WORK/modules" Icon/make-icon.swift "$WORK/art"
 iconutil -c icns "$WORK/art/AppIcon.iconset" -o "$APP/Contents/Resources/AppIcon.icns"
 tiffutil -cathidpicheck "$WORK/art/menubar.png" "$WORK/art/menubar@2x.png" -out "$APP/Contents/Resources/MenuBar.tiff"
+# The DMG window's background lives inside the app, so the DMG shows nothing but the app and Applications.
+swift -module-cache-path "$WORK/modules" Icon/make-dmg-background.swift "$WORK/bg"
+tiffutil -cathidpicheck "$WORK/bg/background.png" "$WORK/bg/background@2x.png" \
+    -out "$APP/Contents/Resources/dmg-background.tiff"
+
 # Notarization requires the hardened runtime and a secure timestamp. Without SIGN_ID the app is signed ad hoc.
 codesign --force --options runtime ${SIGN_ID:+--timestamp} --sign "${SIGN_ID:--}" "$APP"
 codesign --verify --strict "$APP"
-echo "Built $(pwd)/$APP"
+ln -sfn /Applications dist/dmg/Applications
+
+# Finder lays out the window (background, icon spots) and saves it in the volume's .DS_Store.
+# Icon positions must match the arrow in Icon/make-dmg-background.swift.
+hdiutil create -quiet -volname Tallynn -srcfolder dist/dmg -format UDRW "$WORK/rw.dmg"
+hdiutil attach -quiet -readwrite -noverify -noautoopen "$WORK/rw.dmg"
+MNT=/Volumes/Tallynn
+osascript <<'EOF'
+tell application "Finder" to tell disk "Tallynn"
+    open
+    set current view of container window to icon view
+    set toolbar visible of container window to false
+    set statusbar visible of container window to false
+    set bounds of container window to {200, 120, 840, 520}
+    set opts to icon view options of container window
+    set arrangement of opts to not arranged
+    set icon size of opts to 128
+    set text size of opts to 13
+    set background picture of opts to file "Tallynn.app:Contents:Resources:dmg-background.tiff"
+    set position of item "Tallynn.app" to {160, 190}
+    set position of item "Applications" to {480, 190}
+    update without registering applications
+    close
+end tell
+EOF
+# A Finder that can't be scripted would leave this waiting for ever.
+for i in $(seq 61); do
+    [ ! -f "$MNT/.DS_Store" ] || break
+    [ "$i" -le 60 ] || { echo "Finder didn't lay out the DMG within a minute." >&2; exit 1; }
+    sleep 1
+done
+rm -rf "$MNT/.fseventsd" "$MNT/.Trashes"
+sync
+hdiutil detach -quiet "$MNT"
+MNT=
+
+hdiutil convert -quiet "$WORK/rw.dmg" -format UDZO -ov -o "$DMG"
+echo "Built $(pwd)/$DMG"
