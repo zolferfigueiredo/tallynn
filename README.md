@@ -46,6 +46,7 @@ You need:
 - **Never keeps a token.** It reads the GitHub CLI's login on each refresh and keeps it only in memory. It never stores, logs or shows a credential.
 - **Updates itself.** **Check for updates…** finds a new release and installs it in one click, only if it's signed by the same developer. It can check daily or weekly on its own, and tells you once with a notification.
 - **Native and tiny.** A small Swift app in the menu bar, with no Dock icon unless you choose **Keep in Dock**, and then clicking it opens the menu. It can launch at login.
+- **In your language.** English, Deutsch, Español, Français, Italiano, Polski, Português, Русский, Українська, 中文, 日本語 and 한국어. It starts in your Mac's language, and **Language** on the General tab switches it.
 - **From Tallinn.** The icon is Viru Gate, the two towers that open Tallinn's Old Town.
 
 ## How it works
@@ -64,7 +65,7 @@ Every 5, 10, 30 or 60 minutes, and when you choose **Refresh**, Tallynn asks Git
 - **Refresh** (⌘R), and **Refresh rate**: 5, 10 (default) or 30 minutes, or 1 hour.
 - **Total**: **Menu bar** (on) and **List** (off). At least one stays on. The same two are in Settings.
 - **Settings…** (⌘,):
-  - **General**: your GitHub account, the repositories to count, and the total.
+  - **General**: your GitHub account, the repositories to count, the total, and the language.
   - **About**: the version, and links to the author, GitHub and Buy me a coffee.
 - **Launch at Login** (from the Applications folder) and **Keep in Dock**, which asks first because macOS restarts the Dock to change it.
 - **About Tallynn** opens Settings on About.

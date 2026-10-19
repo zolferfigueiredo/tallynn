@@ -76,8 +76,8 @@ func relaunchWhenQuit() throws {
 /// "Update available!" over "Install version 0.3.0 now", for the menu item that replaces Check for updates.
 func updateAvailableTitle(_ version: String) -> NSAttributedString {
     let bold = NSFontManager.shared.convert(NSFont.menuFont(ofSize: 0), toHaveTrait: .boldFontMask)
-    let title = NSMutableAttributedString(string: "Update available!\n", attributes: [.font: bold])
-    title.append(NSAttributedString(string: "Install version \(version) now",
+    let title = NSMutableAttributedString(string: tr("update_available") + "\n", attributes: [.font: bold])
+    title.append(NSAttributedString(string: tr("install_now", ["version": version]),
                                     attributes: [.font: NSFont.menuFont(ofSize: NSFont.smallSystemFontSize),
                                                  .foregroundColor: NSColor.secondaryLabelColor]))
     return title
@@ -85,7 +85,7 @@ func updateAvailableTitle(_ version: String) -> NSAttributedString {
 
 /// The filled download arrow in the accent color, so the item stands out.
 func updateAvailableIcon() -> NSImage? {
-    NSImage(systemSymbolName: "arrow.down.circle.fill", accessibilityDescription: "Update available")?
+    NSImage(systemSymbolName: "arrow.down.circle.fill", accessibilityDescription: tr("update_available"))?
         .withSymbolConfiguration(.init(paletteColors: [.controlAccentColor]))
 }
 
@@ -94,7 +94,7 @@ final class UpdateProgress: NSObject {
     private let window = NSWindow(contentRect: .zero, styleMask: [.titled], backing: .buffered, defer: false)
     private let status = NSTextField(labelWithString: "")
     private let bar = NSProgressIndicator()
-    private let reopen = NSButton(title: "Reopen", target: nil, action: nil)
+    private let reopen = NSButton(title: tr("reopen"), target: nil, action: nil)
     /// The window outlives the code that started the update, and its Reopen button needs this object alive.
     private static var open: UpdateProgress?
 
@@ -167,7 +167,7 @@ final class UpdateProgress: NSObject {
             try relaunchWhenQuit()
             NSApp.terminate(nil)
         } catch {
-            status.stringValue = "Couldn’t reopen: \(error.localizedDescription)"
+            status.stringValue = tr("reopen_failed", ["error": error.localizedDescription])
         }
     }
 }
@@ -179,8 +179,8 @@ func notifyUpdate(_ version: String) async -> Bool {
     let center = UNUserNotificationCenter.current()
     guard (try? await center.requestAuthorization(options: [.alert, .sound])) == true else { return false }
     let content = UNMutableNotificationContent()
-    content.title = "Tallynn \(version) is available"
-    content.body = "You’re using \(appVersion). Click to update."
+    content.title = tr("available", ["version": version])
+    content.body = tr("click_to_update", ["version": appVersion])
     content.sound = .default
     guard (try? await center.add(UNNotificationRequest(identifier: "update", content: content, trigger: nil))) != nil else {
         return false
@@ -196,11 +196,11 @@ func install(_ release: LatestRelease, token: String, step: (String) -> Void) as
     let work = try files.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: Bundle.main.bundleURL, create: true)
     defer { try? files.removeItem(at: work) }
 
-    step("Downloading version \(release.version)…")
+    step(tr("downloading", ["version": release.version]))
     let (download, response) = try await downloadAsset(release.dmg, token: token)
     let dmg = work.appending(path: "update.dmg")
     try files.moveItem(at: download, to: dmg)
-    guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw UpdateError(errorDescription: "The download failed.") }
+    guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw UpdateError(errorDescription: tr("download_failed")) }
 
     let mount = work.appending(path: "mount")
     try files.createDirectory(at: mount, withIntermediateDirectories: true)
@@ -214,18 +214,18 @@ func install(_ release: LatestRelease, token: String, step: (String) -> Void) as
     }
     try? await run("/usr/bin/hdiutil", "detach", mount.path, "-force")
 
-    step("Checking the signature…")
+    step(tr("checking_signature"))
     do {
         try await run("/usr/bin/codesign", "--verify", "--strict", "-R" + teamRequirement, fresh.path)
     } catch {
-        throw UpdateError(errorDescription: "The download isn’t signed by Tallynn’s developer, so it wasn’t installed.")
+        throw UpdateError(errorDescription: tr("not_signed"))
     }
     let info = Bundle(url: fresh)?.infoDictionary
     guard info?["CFBundleIdentifier"] as? String == Bundle.main.bundleIdentifier,
           info?["CFBundleShortVersionString"] as? String == release.version else {
-        throw UpdateError(errorDescription: "The download isn’t Tallynn \(release.version), so it wasn’t installed.")
+        throw UpdateError(errorDescription: tr("wrong_download", ["version": release.version]))
     }
-    step("Installing…")
+    step(tr("installing"))
     _ = try files.replaceItemAt(Bundle.main.bundleURL, withItemAt: fresh)
 }
 
@@ -238,7 +238,7 @@ private nonisolated func run(_ tool: String, _ arguments: String...) async throw
     process.standardError = FileHandle.nullDevice
     let status = await exitStatus(process)
     guard status == 0 else {
-        throw UpdateError(errorDescription: "\(URL(fileURLWithPath: tool).lastPathComponent) failed with code \(status).")
+        throw UpdateError(errorDescription: tr("tool_failed", ["tool": URL(fileURLWithPath: tool).lastPathComponent, "code": status]))
     }
 }
 
@@ -261,14 +261,14 @@ extension AppDelegate {
         guard let version = defaults.string(forKey: "updatedTo") else { return }
         defaults.removeObject(forKey: "updatedTo")
         guard version == appVersion else { return }
-        alert("Update complete", "You’re now using Tallynn \(appVersion).", "OK")
+        alert(tr("update_complete"), tr("now_using", ["version": appVersion]), tr("ok"))
     }
 
     /// Quiet checks only speak up when there is a new version.
     func checkForUpdates(quiet: Bool) {
         guard !checking, UpdateProgress.underway == nil else { return }
         guard let token else {
-            if !quiet { alert("Sign in to check for updates", "Tallynn’s releases are in a private GitHub repository. Sign in with GitHub in Settings, then check again.", "OK") }
+            if !quiet { alert(tr("sign_in_to_check"), tr("sign_in_to_check_text"), tr("ok")) }
             return
         }
         checking = true
@@ -276,31 +276,31 @@ extension AppDelegate {
             defer { checking = false }
             guard let latest = await fetchLatestRelease(token: token) else {
                 log.notice("update check failed")
-                if !quiet { alert("Couldn’t check for updates", "Check your internet connection and your GitHub sign-in, then try again.", "OK") }
+                if !quiet { alert(tr("check_failed"), tr("check_failed_text"), tr("ok")) }
                 return
             }
             defaults.set(Date.now, forKey: "lastUpdateCheck")
             defaults.set(latest.version, forKey: "availableVersion")
             log.notice("latest \(latest.version, privacy: .public), running \(appVersion, privacy: .public)")
             guard isNewer(latest.version, than: appVersion) else {
-                if !quiet { alert("Tallynn is up to date", "Version \(appVersion) is the newest.", "OK") }
+                if !quiet { alert(tr("up_to_date"), tr("newest", ["version": appVersion]), tr("ok")) }
                 return
             }
             if quiet, await notifyUpdate(latest.version) { return }
-            guard alert("Tallynn \(latest.version) is available", "You’re using \(appVersion). Update now?", "Update Now", "Later") else { return }
-            let progress = UpdateProgress("Updating to Tallynn \(latest.version)")
+            guard alert(tr("available", ["version": latest.version]), tr("update_question", ["version": appVersion]), tr("update_now"), tr("later")) else { return }
+            let progress = UpdateProgress(tr("updating_to", ["version": latest.version]))
             do {
                 guard Bundle.main.bundlePath.hasPrefix("/Applications/") else {
-                    throw UpdateError(errorDescription: "Updates install only into the copy in Applications. Move Tallynn there and try again.")
+                    throw UpdateError(errorDescription: tr("applications_only"))
                 }
                 progress.show()
                 try await install(latest, token: token) { progress.step($0) }
                 defaults.set(latest.version, forKey: "updatedTo")
-                progress.done("Version \(latest.version) is installed. Reopen to start it.")
+                progress.done(tr("installed", ["version": latest.version]))
             } catch {
                 progress.close()
                 log.error("update: \(error.localizedDescription, privacy: .public)")
-                if alert("The update didn’t install", error.localizedDescription, "Download", "Cancel") {
+                if alert(tr("update_failed"), error.localizedDescription, tr("download"), tr("cancel")) {
                     NSWorkspace.shared.open(releasesPage.appending(path: "tag/v\(latest.version)"))
                 }
             }
