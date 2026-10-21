@@ -44,7 +44,7 @@ The menu bar item SHALL show the Tallynn icon followed by the total while the to
 - **THEN** the menu bar shows the icon alone
 
 ### Requirement: Counts in the menu
-The menu SHALL list each shown repository with a count above 0, alphabetically as Finder sorts names, with its count at the menu's right edge. Repositories with 0 SHALL be hidden. While the total's List placement is on, a bold TOTAL row with the total SHALL follow them. Signed in with no repository ticked, the menu SHALL offer "Choose Repositories…", opening Settings.
+The menu SHALL list each shown repository with a count above 0, alphabetically as Finder sorts names, with its count at the menu's right edge. Repositories with 0 SHALL be hidden. While the total's List placement is on, a bold TOTAL row with the total SHALL follow them. Signed in with no repository ticked, the menu SHALL offer "Choose repositories…", opening Settings.
 
 #### Scenario: Script's example
 - **WHEN** counts are claudiostat 430, theej 361, bhbrightness 270, wrecktangle 34, weej 16, zolferfigueiredo 0, and the List placement is off
@@ -56,7 +56,7 @@ The menu SHALL list each shown repository with a count above 0, alphabetically a
 
 #### Scenario: Nothing ticked yet
 - **WHEN** the user is signed in and has ticked no repository
-- **THEN** the menu shows "Choose Repositories…", which opens Settings
+- **THEN** the menu shows "Choose repositories…", which opens Settings
 
 ### Requirement: Downloads per version
 Each repository row SHALL open a submenu listing that repository's releases with downloads above 0, newest first, each with its count at the right edge.
@@ -66,7 +66,7 @@ Each repository row SHALL open a submenu listing that repository's releases with
 - **THEN** hovering claudiostat shows v0.6.0 78, then v0.5.0 287, and no v0.4.10 row
 
 ### Requirement: Menu actions
-Below the counts and a separator, the menu SHALL show the time of the last successful refresh, then Refresh and a Refresh rate submenu (5, 10, 30, 60 minutes) with the current one checked. After a separator come Settings… (⌘,) and the Total submenu; after another, Launch at Login and Keep in Dock, each with a checkmark when on; after a last one, About Tallynn directly above Quit Tallynn.
+Below the counts and a separator, the menu SHALL show the time of the last successful refresh, then Refresh and a Refresh rate submenu (5, 10, 30, 60 minutes) with the current one checked. After a separator come Settings… (⌘,) and the Total submenu; after another, Launch at login and Keep in Dock, each with a checkmark when on; after a last one, About Tallynn directly above Quit Tallynn.
 
 #### Scenario: Refresh
 - **WHEN** the user picks Refresh while signed in
@@ -77,7 +77,7 @@ Below the counts and a separator, the menu SHALL show the time of the last succe
 - **THEN** Refresh is disabled
 
 #### Scenario: Launch at login
-- **WHEN** the user turns on Launch at Login
+- **WHEN** the user turns on Launch at login
 - **THEN** the app starts automatically at the next login, and the item shows a checkmark
 
 ### Requirement: Total placement
@@ -108,7 +108,7 @@ Settings SHALL have General and About tabs in its toolbar, its title following t
 
 #### Scenario: Signed in
 - **WHEN** Settings opens on General with an account signed in
-- **THEN** General shows, without the app icon, "Signed in as @login" with Sign Out, the user's repositories A to Z as checkboxes with a lock on private ones and a reload button, and a Total section with Menu bar and List checkboxes
+- **THEN** General shows, without the app icon, "Signed in as @login" with Sign out, the user's repositories A to Z as checkboxes with a lock on private ones and a reload button, and a Total section with Menu bar and List checkboxes
 
 #### Scenario: Signed out
 - **WHEN** Settings opens with the GitHub CLI installed but signed out
@@ -116,7 +116,7 @@ Settings SHALL have General and About tabs in its toolbar, its title following t
 
 #### Scenario: Signing in
 - **WHEN** the user picks Sign in with GitHub
-- **THEN** github.com opens with the code the GitHub CLI copied, the window shows that code with Cancel and Open GitHub Again, and after approval it comes back in front showing the account and its repositories
+- **THEN** github.com opens with the code the GitHub CLI copied, the window shows that code with Cancel and Open GitHub again, and after approval it comes back in front showing the account and its repositories
 
 #### Scenario: Closing mid sign-in
 - **WHEN** the user closes Settings or picks Cancel while waiting for GitHub
@@ -127,7 +127,7 @@ Settings SHALL have General and About tabs in its toolbar, its title following t
 - **THEN** it appears in the menu after the refresh that follows, without a notification
 
 #### Scenario: Signing out
-- **WHEN** the user picks Sign Out
+- **WHEN** the user picks Sign out
 - **THEN** the app first asks, because this also signs the GitHub CLI out on this Mac
 
 #### Scenario: About
@@ -140,7 +140,7 @@ Settings SHALL have General and About tabs in its toolbar, its title following t
 
 #### Scenario: No GitHub CLI
 - **WHEN** the GitHub CLI isn't installed
-- **THEN** Settings says to install it with Homebrew and offers Try Again and Get GitHub CLI
+- **THEN** Settings says to install it with Homebrew and offers Try again and Get GitHub CLI
 
 ### Requirement: Keep in Dock
 Keep in Dock SHALL pin the app's icon to the Dock or unpin it, like the Dock's own "Keep in Dock" option, and its checkmark SHALL reflect whether the app is currently pinned.

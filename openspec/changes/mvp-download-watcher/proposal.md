@@ -12,7 +12,7 @@ Release download counts are checked today with a shell script that is run by han
 - Counts downloads like the author's script: per repository and per release, summing release assets whose names end in `.dmg`, `.exe` or `.zip`.
 - Refreshes every 5, 10, 30 or 60 minutes (user's choice) and on Refresh.
 - Remembers last-seen counts; when a shown repository's count changes, posts one notification with sound listing each change and its delta. A newly shown repository is a silent baseline.
-- Menu bar shows the Tallynn icon and, by default, the total. The menu lists the shown repositories A to Z with per-release submenus, an optional TOTAL row, the last update time, Refresh, Refresh rate, Total (Menu bar, List), Settings, Launch at Login, Keep in Dock, About and Quit.
+- Menu bar shows the Tallynn icon and, by default, the total. The menu lists the shown repositories A to Z with per-release submenus, an optional TOTAL row, the last update time, Refresh, Refresh rate, Total (Menu bar, List), Settings, Launch at login, Keep in Dock, About and Quit.
 - "Keep in Dock" pins the app to the Dock; clicking the Dock icon opens the menu at the pointer, or Settings while signed out.
 
 ## Capabilities

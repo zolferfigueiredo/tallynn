@@ -16,7 +16,7 @@ func notify(_ changes: [Change]) {
 }
 
 extension AppDelegate: UNUserNotificationCenterDelegate {
-    /// Clicking "… is available" checks again, which offers Update Now.
+    /// Clicking "… is available" checks again, which offers Update now.
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
                                             withCompletionHandler done: @escaping () -> Void) {
         if response.notification.request.identifier == "update" { Task { @MainActor in self.checkNow() } }

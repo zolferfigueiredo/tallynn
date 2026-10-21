@@ -7,7 +7,7 @@ Keeps the installed Tallynn current with the releases published on GitHub: check
 ## ADDED Requirements
 
 ### Requirement: Check for updates
-**Check for updates…** SHALL ask GitHub for the latest published release of Tallynn, using the GitHub CLI login, and compare its version with the running one. It SHALL say whether Tallynn is up to date, offer **Update Now** or **Later** for a newer version, or say the check failed.
+**Check for updates…** SHALL ask GitHub for the latest published release of Tallynn, using the GitHub CLI login, and compare its version with the running one. It SHALL say whether Tallynn is up to date, offer **Update now** or **Later** for a newer version, or say the check failed.
 
 #### Scenario: Up to date
 - **WHEN** the latest release is v0.2.0 and Tallynn 0.2.0 is running
@@ -15,7 +15,7 @@ Keeps the installed Tallynn current with the releases published on GitHub: check
 
 #### Scenario: Newer version
 - **WHEN** the latest release is v0.3.0 and Tallynn 0.2.0 is running
-- **THEN** an alert says Tallynn 0.3.0 is available and offers Update Now and Later
+- **THEN** an alert says Tallynn 0.3.0 is available and offers Update now and Later
 
 #### Scenario: Offline
 - **WHEN** GitHub can't be reached
@@ -37,7 +37,7 @@ The **Check automatically** submenu SHALL offer Daily, Weekly (default) and Neve
 - **THEN** no automatic check runs
 
 ### Requirement: Announce a new version once
-When an automatic check finds a newer version, the app SHALL post one notification for that version, never again for the same version, and clicking it SHALL check again and offer **Update Now**. If notifications aren't allowed, it SHALL show the Update Now alert instead. While a newer version is known, the menu item SHALL read "Update available!" over "Install version X now".
+When an automatic check finds a newer version, the app SHALL post one notification for that version, never again for the same version, and clicking it SHALL check again and offer **Update now**. If notifications aren't allowed, it SHALL show the Update now alert instead. While a newer version is known, the menu item SHALL read "Update available!" over "Install version X now".
 
 #### Scenario: Notification
 - **WHEN** an automatic check finds 0.3.0 for the first time
@@ -48,10 +48,10 @@ When an automatic check finds a newer version, the app SHALL post one notificati
 - **THEN** the menu shows "Update available!" with "Install version 0.3.0 now" in place of Check for updates…
 
 ### Requirement: Install only the author's build
-**Update Now** SHALL download the release's `Tallynn-<version>.dmg`, and SHALL replace the running app only if the app inside is signed by the author's Developer ID team (497V6MCDS8), has Tallynn's bundle identifier and the expected version. It SHALL install only into a copy in /Applications. A window SHALL show each step and end with **Reopen**, which starts the new version; after it starts, an alert SHALL say the update is complete, once.
+**Update now** SHALL download the release's `Tallynn-<version>.dmg`, and SHALL replace the running app only if the app inside is signed by the author's Developer ID team (497V6MCDS8), has Tallynn's bundle identifier and the expected version. It SHALL install only into a copy in /Applications. A window SHALL show each step and end with **Reopen**, which starts the new version; after it starts, an alert SHALL say the update is complete, once.
 
 #### Scenario: Successful update
-- **WHEN** the user picks Update Now in /Applications/Tallynn.app and the DMG holds a valid signed Tallynn 0.3.0
+- **WHEN** the user picks Update now in /Applications/Tallynn.app and the DMG holds a valid signed Tallynn 0.3.0
 - **THEN** the app is replaced, Reopen starts 0.3.0, and an alert says it is now using 0.3.0
 
 #### Scenario: Wrong signature
