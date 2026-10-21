@@ -53,7 +53,7 @@ You need:
 
 Every 5, 10, 30 or 60 minutes, and when you choose **Refresh**, Tallynn asks GitHub for your repositories and their releases, and adds up the installer downloads.
 
-- It asks the GitHub CLI for its token (`gh auth token`) on each refresh, so signing in, out or switching accounts in Terminal is followed straight away. **Sign in with GitHub** runs the CLI's own browser sign-in, and **Sign Out** signs the CLI out on this Mac, after asking.
+- It asks the GitHub CLI for its token (`gh auth token`) on each refresh, so signing in, out or switching accounts in Terminal is followed straight away. **Sign in with GitHub** runs the CLI's own browser sign-in, and **Sign out** signs the CLI out on this Mac, after asking.
 - It calls GitHub's REST API: `GET /user`, `GET /user/repos` (your own repositories, forks left out) and each ticked repository's releases, page by page. Nothing is cached on disk.
 - It keeps only the last counts and releases, to compare with the next refresh. A refresh that fails keeps them as they were, so a repository that couldn't be read never looks like a drop, and the menu says **Couldn't refresh**.
 - **Check for updates…** asks GitHub for this repository's latest release with the same sign-in, since the repository is private, and downloads its DMG the same way. The token goes only to GitHub's API, not to the download's storage link. An update installs only if the app inside is signed by the same developer, has Tallynn's identifier and the expected version, and only into the copy in Applications. A window shows each step, and **Reopen** starts the new version.
@@ -67,7 +67,7 @@ Every 5, 10, 30 or 60 minutes, and when you choose **Refresh**, Tallynn asks Git
 - **Settings…** (⌘,):
   - **General**: the language first, then your GitHub account, the repositories to count, and the total.
   - **About**: the version with Check for updates, and links to the author, the website and Buy me a coffee.
-- **Launch at Login** (from the Applications folder) and **Keep in Dock**, which asks first because macOS restarts the Dock to change it.
+- **Launch at login** (from the Applications folder) and **Keep in Dock**, which asks first because macOS restarts the Dock to change it.
 - **About Tallynn** opens Settings on About.
 - **Check for updates…**, which reads **Update available!** once a check finds a new version, and **Check automatically** daily, weekly (default) or never.
 - **Quit Tallynn** (⌘Q).

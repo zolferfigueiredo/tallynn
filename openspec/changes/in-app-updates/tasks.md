@@ -12,4 +12,4 @@
 
 ## 3. End to end
 
-- [ ] 3.1 Release this change as 0.3.0 and install it in /Applications (0.2.0 has no updater). With the next release, 0.3.1, verify Check for updates… offers it, Update Now installs it, Reopen starts it and the alert says 0.3.1
+- [ ] 3.1 Release this change as 0.3.0 and install it in /Applications (0.2.0 has no updater). With the next release, 0.3.1, verify Check for updates… offers it, Update now installs it, Reopen starts it and the alert says 0.3.1
