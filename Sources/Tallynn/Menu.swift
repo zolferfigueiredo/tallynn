@@ -69,14 +69,11 @@ extension AppDelegate {
 
         add(tr("settings"), #selector(showSettings), key: ",").image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
         let totals = NSMenu()
-        totals.autoenablesItems = false
-        for (title, key, on, other) in [(tr("menu_bar"), "totalInMenuBar", places.menuBar, places.list),
-                                        (tr("list"), "totalInList", places.list, places.menuBar)] {
+        for (title, key, on) in [(tr("menu_bar"), "totalInMenuBar", places.menuBar), (tr("list"), "totalInList", places.list)] {
             let entry = NSMenuItem(title: title, action: #selector(toggleTotal), keyEquivalent: "")
             entry.target = self
             entry.representedObject = key
             entry.state = on ? .on : .off
-            entry.isEnabled = !on || other  // the total always shows somewhere
             totals.addItem(entry)
         }
         add(tr("total")).submenu = totals

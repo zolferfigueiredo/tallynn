@@ -60,6 +60,3 @@ nonisolated func sourceRepos(_ repos: [Repo]) -> [Repo] {
 
 /// Before repositories could be picked, every one with downloads was shown, so an upgrade starts with those ticked.
 nonisolated func migratedShownRepos(_ counts: Counts?) -> [String] { menuRows(counts ?? [:]).map(\.repo) }
-
-/// Where the total shows. Never nowhere: with both off, the menu bar keeps it.
-nonisolated func totalPlaces(menuBar: Bool, list: Bool) -> (menuBar: Bool, list: Bool) { (menuBar || !list, list) }

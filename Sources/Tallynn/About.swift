@@ -2,7 +2,7 @@ import AppKit
 
 extension AppDelegate {
     @objc func openAuthor() { NSWorkspace.shared.open(URL(string: "https://zolfer.com/")!) }
-    @objc func openGitHub() { NSWorkspace.shared.open(URL(string: "https://github.com/zolferfigueiredo/tallynn")!) }
+    @objc func openSite() { NSWorkspace.shared.open(URL(string: "https://tallynn.zolfer.com/")!) }
     @objc func openCoffee() { NSWorkspace.shared.open(URL(string: "https://buymeacoffee.com/zolfer")!) }
 
     /// The About tab of Settings, laid out like BeeHan Brightness's About.
@@ -20,20 +20,21 @@ extension AppDelegate {
         for case let view as NSControl in by.views { view.font = .systemFont(ofSize: NSFont.smallSystemFontSize) }
         let number = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
         let version = NSTextField(labelWithString: tr("version", ["version": number]))
+        let check = NSButton(title: tr("check"), target: self, action: #selector(checkNow))
         let line = NSBox()
         line.boxType = .separator
-        let github = NSButton(title: "GitHub", target: self, action: #selector(openGitHub))
-        github.isBordered = false
-        github.contentTintColor = .linkColor
+        let site = NSButton(title: tr("website"), target: self, action: #selector(openSite))
+        site.isBordered = false
+        site.contentTintColor = .linkColor
         let liked = NSTextField(labelWithString: tr("liked"))
         let coffee = NSButton(title: tr("coffee"), target: self, action: #selector(openCoffee))
-        let page = NSStackView(views: [logo, name, by, version, line, github, liked, coffee])
+        let page = NSStackView(views: [logo, name, by, version, check, line, site, liked, coffee])
         page.orientation = .vertical
         page.spacing = 4
         page.setCustomSpacing(12, after: logo)
         for view in [name, by] { page.setCustomSpacing(10, after: view) }
-        for view in [version, line] { page.setCustomSpacing(16, after: view) }
-        page.setCustomSpacing(10, after: github)
+        for view in [version, check, line] { page.setCustomSpacing(16, after: view) }
+        page.setCustomSpacing(10, after: site)
         page.setCustomSpacing(8, after: liked)
         page.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
         page.widthAnchor.constraint(greaterThanOrEqualToConstant: 340).isActive = true

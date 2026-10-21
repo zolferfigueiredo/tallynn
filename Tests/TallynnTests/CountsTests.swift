@@ -97,9 +97,3 @@ import Testing
     #expect(migratedShownRepos(["theej": 362, "weej": 16, "zolferfigueiredo": 0]) == ["theej", "weej"])
     #expect(migratedShownRepos(nil).isEmpty)
 }
-
-@Test(arguments: [(true, false, true, false), (true, true, true, true), (false, true, false, true), (false, false, true, false)])
-func totalAlwaysShowsSomewhere(menuBar: Bool, list: Bool, inBar: Bool, inList: Bool) {
-    let places = totalPlaces(menuBar: menuBar, list: list)
-    #expect(places.menuBar == inBar && places.list == inList)
-}

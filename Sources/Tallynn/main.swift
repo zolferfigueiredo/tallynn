@@ -25,7 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// The repositories ticked in Settings. New ones stay hidden until ticked.
     var shownRepos: Set<String> { Set(defaults.stringArray(forKey: "shownRepos") ?? []) }
     var places: (menuBar: Bool, list: Bool) {
-        totalPlaces(menuBar: defaults.bool(forKey: "totalInMenuBar"), list: defaults.bool(forKey: "totalInList"))
+        (defaults.bool(forKey: "totalInMenuBar"), defaults.bool(forKey: "totalInList"))
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {

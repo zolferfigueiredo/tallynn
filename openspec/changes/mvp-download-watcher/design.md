@@ -42,7 +42,7 @@ The token comes from the GitHub CLI, the way ClaudioStat leans on Claude Code: `
 - `login`: the account last signed in. A different login clears `shownRepos` and the counts.
 - `releases`: JSON of `[String: [Release]]` by repo name (tag and installer downloads, newest first), for the per-version submenus.
 - `counts`: `[String: Int]` by repo name, `repoCounts(releases)`, saved with `releases` and filtered by `shownRepos` at save time. A repository without a saved count is a silent baseline (`changes(old:new:)`), so ticking one, or the first refresh after signing in, never notifies its history.
-- `lastRefresh`: `Date` of the last success. `interval`: minutes, default 10. `totalInMenuBar` (default on) and `totalInList` (default off), read through `totalPlaces`, which keeps the bar total if both are off.
+- `lastRefresh`: `Date` of the last success. `interval`: minutes, default 10. `totalInMenuBar` (default on) and `totalInList` (default off); both off hides the total.
 - Losing the login (Sign Out, a 401, or the CLI signed out in Terminal) clears `counts`, `releases` and `lastRefresh`, keeping the picks. A refresh that comes back after the token changed is dropped, and an `again` flag runs one more refresh when repositories were ticked during one.
 - Pure functions (no AppKit) hold the logic the specs test: `releaseDownloads`, `repoCounts`, `total`, `changes`, `notificationBody`, `menuRows`, `sourceRepos`, `migratedShownRepos`, `totalPlaces`, `nextPage`, `loginPrompt`.
 

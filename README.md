@@ -42,7 +42,7 @@ You need:
 - **No surprises.** The first refresh after signing in, and a repository you've just ticked, set a quiet baseline. Only the downloads after that are announced, and a relaunch never repeats them.
 - **Per version.** Each repository opens a submenu with its releases that have downloads, newest first, and the downloads of each.
 - **Public and private.** Pick any of your own repositories in Settings, with a lock on the private ones. New ones stay hidden until you tick them.
-- **The total where you want it.** In the menu bar, as a TOTAL row in the menu, or both.
+- **The total where you want it.** In the menu bar, as a TOTAL row in the menu, both, or neither.
 - **Never keeps a token.** It reads the GitHub CLI's login on each refresh and keeps it only in memory. It never stores, logs or shows a credential.
 - **Updates itself.** **Check for updates…** finds a new release and installs it in one click, only if it's signed by the same developer. It can check daily or weekly on its own, and tells you once with a notification.
 - **Native and tiny.** A small Swift app in the menu bar, with no Dock icon unless you choose **Keep in Dock**, and then clicking it opens the menu. It can launch at login.
@@ -63,10 +63,10 @@ Every 5, 10, 30 or 60 minutes, and when you choose **Refresh**, Tallynn asks Git
 <summary><b>Every setting</b></summary>
 
 - **Refresh** (⌘R), and **Refresh rate**: 5, 10 (default) or 30 minutes, or 1 hour.
-- **Total**: **Menu bar** (on) and **List** (off). At least one stays on. The same two are in Settings.
+- **Total**: **Menu bar** (on) and **List** (off). The same two are in Settings.
 - **Settings…** (⌘,):
   - **General**: the language first, then your GitHub account, the repositories to count, and the total.
-  - **About**: the version, and links to the author, GitHub and Buy me a coffee.
+  - **About**: the version with Check for updates, and links to the author, the website and Buy me a coffee.
 - **Launch at Login** (from the Applications folder) and **Keep in Dock**, which asks first because macOS restarts the Dock to change it.
 - **About Tallynn** opens Settings on About.
 - **Check for updates…**, which reads **Update available!** once a check finds a new version, and **Check automatically** daily, weekly (default) or never.
