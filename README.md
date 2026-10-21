@@ -88,7 +88,7 @@ To try a change, run `./run.sh`. It builds a debug copy in `/tmp/tallynn-run`, q
 
 ## Release
 
-Raise both versions in `Info.plist` and merge to main. Every pull request runs `.github/workflows/ci.yml` on the same runner: shellcheck, the tests and the release build with warnings as errors, and a check that a change to the app raises its version, since merging one that doesn't releases nothing. `.github/workflows/release.yml` then runs `./release.sh` on the self-hosted runner on this Mac: it builds the DMG, signs it with Developer ID, notarizes it, and publishes it as a GitHub release. A version that's already released is skipped.
+Raise both versions in `Info.plist` and merge to main. Every pull request runs `.github/workflows/ci.yml` on the same runner: shellcheck, the tests and the release build with warnings as errors, and a check that a change to the app raises its version, since merging one that doesn't releases nothing. `.github/workflows/release.yml` then runs `./release.sh` on the self-hosted runner on this Mac: it builds the DMG, signs it with Developer ID, notarizes it, and publishes it as a GitHub release. A version that's already released is skipped. A pull request that changes `release.sh`, `build.sh`, `Icon/` or `release.yml` runs `release.yml` as a trial: `./build.sh` only, the tests and the DMG signed ad hoc, with nothing signed with Developer ID, notarized or published.
 
 The repository is private, so nothing runs on GitHub's own machines, which bill minutes there. Self-hosted runs are free, and so are releases and their downloads. Keep the GitHub Actions budget at $0 in Settings > Billing, so a job that ever lands on GitHub's machines fails instead of billing. `./release.sh` by hand does the same without Actions.
 
