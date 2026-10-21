@@ -6,16 +6,23 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  pull_request:  # builds only, so a change to the release can be tried before it merges
+    paths: [release.sh, build.sh, Icon/**, .github/workflows/release.yml]
 permissions:
   contents: write
+# Per ref, so a pull request's trial never waits behind or cancels a release.
 concurrency:
-  group: release
+  group: release-${{ github.ref }}
 jobs:
   release:
-    name: Build, sign, notarize and publish
+    name: ${{ github.event_name == 'pull_request' && 'Build the DMG, as a trial' || 'Build, sign, notarize and publish' }}
     runs-on: [self-hosted, macOS, release]
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
+      # The tests, the universal app and the DMG laid out by Finder, signed ad hoc: no Developer ID, notarizing or release.
+      - if: github.event_name == 'pull_request'
+        run: ./build.sh
       # No GH_TOKEN: gh uses z's own login on this Mac, so the release is zolferfigueiredo's, not github-actions[bot]'s.
-      - run: ./release.sh
+      - if: github.event_name != 'pull_request'
+        run: ./release.sh
