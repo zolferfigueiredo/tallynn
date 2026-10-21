@@ -86,6 +86,7 @@ extension Strings {
         "version": "版本 {version}",
         "waiting": "正在等待 GitHub…",
         "weekly": "每周",
+        "website": "网站",
         "wrong_download": "下载的文件不是 Tallynn {version}。",
     ]
 }

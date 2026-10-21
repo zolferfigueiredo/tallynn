@@ -294,15 +294,13 @@ struct SettingsView: View {
         }
     }
 
-    /// Where the total shows, as in the menu's Total submenu. The last place still on can't be turned off.
+    /// Where the total shows, as in the menu's Total submenu. Both can be off.
     @ViewBuilder var total: some View {
         Text(tr("total")).font(.headline)
         Toggle(tr("menu_bar"), isOn: Binding(get: { settings.totalInMenuBar }, set: { settings.app.setTotal("totalInMenuBar", $0) }))
             .toggleStyle(.checkbox)
-            .disabled(settings.totalInMenuBar && !settings.totalInList)
         Toggle(tr("list"), isOn: Binding(get: { settings.totalInList }, set: { settings.app.setTotal("totalInList", $0) }))
             .toggleStyle(.checkbox)
-            .disabled(settings.totalInList && !settings.totalInMenuBar)
     }
 
     func waiting(_ text: String) -> some View {

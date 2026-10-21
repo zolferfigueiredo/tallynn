@@ -81,7 +81,7 @@ Below the counts and a separator, the menu SHALL show the time of the last succe
 - **THEN** the app starts automatically at the next login, and the item shows a checkmark
 
 ### Requirement: Total placement
-The Total submenu, and the Total section in Settings, SHALL offer Menu bar and List, each checked when on, defaulting to Menu bar on and List off. Both places SHALL share one setting. Either or both MAY be on, but the last one on SHALL NOT be turned off, and the choice SHALL persist.
+The Total submenu, and the Total section in Settings, SHALL offer Menu bar and List, each checked when on, defaulting to Menu bar on and List off. Both places SHALL share one setting. Either, both or neither MAY be on, and the choice SHALL persist.
 
 #### Scenario: Default
 - **WHEN** the user has never changed it
@@ -95,9 +95,9 @@ The Total submenu, and the Total section in Settings, SHALL offer Menu bar and L
 - **WHEN** the user then turns Menu bar off
 - **THEN** the menu bar shows the icon alone and the menu keeps the TOTAL row
 
-#### Scenario: Last one on
-- **WHEN** only one placement is on
-- **THEN** its item in the menu and its checkbox in Settings are disabled, so the total always shows somewhere
+#### Scenario: Neither
+- **WHEN** the user turns both off
+- **THEN** the menu bar shows the icon alone and the menu has no TOTAL row
 
 #### Scenario: Menu and Settings agree
 - **WHEN** the user turns List on in Settings while it is open, or in the menu
@@ -132,7 +132,7 @@ Settings SHALL have General and About tabs in its toolbar, its title following t
 
 #### Scenario: About
 - **WHEN** the user picks About Tallynn in the menu
-- **THEN** Settings opens on its About tab, laid out like BeeHan Brightness's About: the app icon, "Tallynn", "Made by Zolfer Figueiredo" linking to zolfer.com, the version from Info.plist, a separator, a GitHub link to the repository, and "Buy me a coffee"
+- **THEN** Settings opens on its About tab, laid out like BeeHan Brightness's About: the app icon, "Tallynn", "Made by Zolfer Figueiredo" linking to zolfer.com, the version from Info.plist, a Check for updates button, a separator, a Website link to tallynn.zolfer.com, and "Buy me a coffee"
 
 #### Scenario: Settings from the menu
 - **WHEN** the user picks Settings… in the menu, or opens the app again while signed out

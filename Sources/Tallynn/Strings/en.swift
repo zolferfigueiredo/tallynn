@@ -86,6 +86,7 @@ extension Strings {
         "version": "Version {version}",
         "waiting": "Waiting for GitHub…",
         "weekly": "Weekly",
+        "website": "Website",
         "wrong_download": "The download isn’t Tallynn {version}.",
     ]
 }
