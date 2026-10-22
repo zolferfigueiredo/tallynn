@@ -29,6 +29,13 @@ nonisolated func repoCounts(_ releases: [String: [Release]]) -> Counts {
     releases.mapValues { $0.reduce(0) { $0 + $1.downloads } }
 }
 
+/// GitHub sometimes answers a repository's releases with an empty list although it has releases, so an empty answer
+/// for one that had some keeps those.
+// ponytail: a repository whose releases are all deleted keeps its last count; untick and tick it to clear that.
+nonisolated func keepingLast(_ fetched: [String: [Release]], previous: [String: [Release]]) -> [String: [Release]] {
+    Dictionary(uniqueKeysWithValues: fetched.map { repo, releases in (repo, releases.isEmpty ? previous[repo] ?? [] : releases) })
+}
+
 nonisolated func total(_ counts: Counts) -> Int { counts.values.reduce(0, +) }
 
 /// A repository with no saved count is a baseline: just ticked, or the first refresh after signing in. Its next

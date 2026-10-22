@@ -49,6 +49,13 @@ import Testing
     #expect(sourceRepos(repos)[1].private)
 }
 
+@Test func anEmptyAnswerKeepsTheLastReleases() {
+    let before = ["theej": [Release(tag: "v2", downloads: 425)], "weej": [Release(tag: "v1", downloads: 27)]]
+    let fetched: [String: [Release]] = ["theej": [], "weej": [Release(tag: "v1", downloads: 28)], "newapp": []]
+    #expect(keepingLast(fetched, previous: before) == ["theej": [Release(tag: "v2", downloads: 425)],
+                                                       "weej": [Release(tag: "v1", downloads: 28)], "newapp": []])
+}
+
 @Test func totalOfRepositories() {
     #expect(total(["theej": 361, "weej": 16, "wrecktangle": 34]) == 411)
 }
