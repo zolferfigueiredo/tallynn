@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Testing
 @testable import Tallynn
@@ -31,4 +32,18 @@ import Testing
     let json = #"{"tag_name": "v0.3.0", "assets": [{"name": "notes.txt", "url": "https://api.github.com/x"}]}"#
     #expect(latestRelease(from: Data(json.utf8)) == nil)
     #expect(latestRelease(from: Data("not json".utf8)) == nil)
+}
+
+@MainActor @Test func menuImagesShowOnMacOS27() {
+    guard #available(macOS 27, *) else { return }
+    let icon = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    icon.image = NSImage(size: NSSize(width: 16, height: 16))
+    let parent = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    parent.submenu = NSMenu()
+    parent.submenu?.addItem(icon)
+    let menu = NSMenu()
+    menu.addItem(parent)
+    showImages(menu)
+    #expect(icon.value(forKey: "preferredImageVisibility") as? Int == 1)
+    #expect(parent.value(forKey: "preferredImageVisibility") as? Int == 0)  // no image, left to AppKit
 }

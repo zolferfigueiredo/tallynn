@@ -49,6 +49,13 @@ import Testing
     #expect(sourceRepos(repos)[1].private)
 }
 
+@Test func anEmptyAnswerKeepsTheLastReleases() {
+    let before = ["theej": [Release(tag: "v2", downloads: 425)], "weej": [Release(tag: "v1", downloads: 27)]]
+    let fetched: [String: [Release]] = ["theej": [], "weej": [Release(tag: "v1", downloads: 28)], "newapp": []]
+    #expect(keepingLast(fetched, previous: before) == ["theej": [Release(tag: "v2", downloads: 425)],
+                                                       "weej": [Release(tag: "v1", downloads: 28)], "newapp": []])
+}
+
 @Test func totalOfRepositories() {
     #expect(total(["theej": 361, "weej": 16, "wrecktangle": 34]) == 411)
 }
@@ -88,9 +95,22 @@ import Testing
     #expect(changes(old: ["theej": 361, "gone": 5], new: ["theej": 361]).isEmpty)
 }
 
-@Test func menuHidesZerosAndSortsAlphabetically() {
+@Test func menuShowsZerosAndSortsAlphabetically() {
     let rows = menuRows(["theej": 361, "weej": 16, "wrecktangle": 34, "claudiostat": 430, "bhbrightness": 270, "zolferfigueiredo": 0, "App2": 1, "app10": 1])
-    #expect(rows.map(\.repo) == ["App2", "app10", "bhbrightness", "claudiostat", "theej", "weej", "wrecktangle"])
+    #expect(rows.map(\.repo) == ["App2", "app10", "bhbrightness", "claudiostat", "theej", "weej", "wrecktangle", "zolferfigueiredo"])
+    #expect(rows.last?.count == 0)
+}
+
+@Test func tickedRepositoriesComeFirst() throws {
+    let json = """
+    [{"name": "alpha", "full_name": "z/alpha", "private": false, "fork": false},
+     {"name": "beta", "full_name": "z/beta", "private": false, "fork": false},
+     {"name": "gamma", "full_name": "z/gamma", "private": false, "fork": false},
+     {"name": "theej", "full_name": "z/theej", "private": false, "fork": false}]
+    """
+    let repos: [Repo] = try decode(Data(json.utf8))
+    #expect(tickedFirst(repos, shown: ["theej", "beta"]).map(\.name) == ["beta", "theej", "alpha", "gamma"])
+    #expect(tickedFirst(repos, shown: []).map(\.name) == ["alpha", "beta", "gamma", "theej"])
 }
 
 @Test func migrationShowsReposWithDownloads() {

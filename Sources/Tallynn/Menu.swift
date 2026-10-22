@@ -108,6 +108,7 @@ extension AppDelegate {
         menu.addItem(.separator())
         let quit = add(tr("quit"), #selector(NSApplication.terminate), key: "q")
         quit.target = NSApp
+        showImages(menu)
     }
 
     /// A repository's releases with downloads, newest first, each with its count at the right edge.
@@ -169,5 +170,15 @@ extension AppDelegate {
         alert.addButton(withTitle: tr("cancel"))
         NSApp.activate()
         if alert.runModal() == .alertFirstButtonReturn { toggleDockTile() }
+    }
+}
+
+// macOS 27 hides menu item images unless an item asks to show its own (preferredImageVisibility = .visible, 1).
+// Set by key, as the macOS 26 SDK has no such property.
+func showImages(_ menu: NSMenu) {
+    guard #available(macOS 27, *) else { return }
+    for item in menu.items {
+        if item.image != nil { item.setValue(1, forKey: "preferredImageVisibility") }
+        if let submenu = item.submenu { showImages(submenu) }
     }
 }

@@ -99,7 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case .success(let fetched):
             // Unticked while it asked: not saved back.
             let shown = shownRepos
-            let releases = fetched.filter { shown.contains($0.key) }
+            let releases = keepingLast(fetched.filter { shown.contains($0.key) }, previous: self.releases)
             let fresh = repoCounts(releases)
             let found = changes(old: counts, new: fresh)
             defaults.set(fresh, forKey: "counts")

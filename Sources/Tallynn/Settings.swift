@@ -155,7 +155,7 @@ extension AppDelegate {
         loadFailed = false
         Task {
             do {
-                repos = try await fetchRepos(token: token)
+                repos = tickedFirst(try await fetchRepos(token: token), shown: shown)
             } catch Problem.signedOut {
                 app.disconnect(.signedOut)
             } catch {
@@ -204,10 +204,16 @@ struct SettingsView: View {
         let _ = settings.language
         VStack(alignment: .leading, spacing: 12) {
             // First, in every step: someone who can't read the rest can still find their language.
-            Picker(tr("language"), selection: Binding(get: { settings.language }, set: { settings.setLanguage($0) })) {
-                ForEach(Language.allCases, id: \.self) { Text("\($0.flag) \($0.name)").tag($0) }
+            HStack {
+                Text(tr("language"))
+                Spacer()
+                Picker(tr("language"), selection: Binding(get: { settings.language }, set: { settings.setLanguage($0) })) {
+                    ForEach(Language.allCases, id: \.self) { Text("\($0.flag) \($0.name)").tag($0) }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .fixedSize()
             }
-            .pickerStyle(.menu)
             Divider()
             switch settings.step {
             case .notFound:
