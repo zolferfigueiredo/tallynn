@@ -46,10 +46,9 @@ nonisolated func notificationBody(_ changes: [Change]) -> String {
         .joined(separator: "\n")
 }
 
-/// Repositories with downloads, alphabetically, as Finder sorts names.
+/// The shown repositories, alphabetically, as Finder sorts names.
 nonisolated func menuRows(_ counts: Counts) -> [(repo: String, count: Int)] {
-    counts.filter { $0.value > 0 }
-        .sorted { $0.key.localizedStandardCompare($1.key) == .orderedAscending }
+    counts.sorted { $0.key.localizedStandardCompare($1.key) == .orderedAscending }
         .map { (repo: $0.key, count: $0.value) }
 }
 
@@ -58,5 +57,11 @@ nonisolated func sourceRepos(_ repos: [Repo]) -> [Repo] {
     repos.filter { !$0.fork }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
 }
 
+/// Settings' list: the ticked repositories first, then the rest, each keeping its order. Sorted once as the list
+/// loads, so a row doesn't jump from under the pointer when it's ticked.
+nonisolated func tickedFirst(_ repos: [Repo], shown: Set<String>) -> [Repo] {
+    repos.filter { shown.contains($0.name) } + repos.filter { !shown.contains($0.name) }
+}
+
 /// Before repositories could be picked, every one with downloads was shown, so an upgrade starts with those ticked.
-nonisolated func migratedShownRepos(_ counts: Counts?) -> [String] { menuRows(counts ?? [:]).map(\.repo) }
+nonisolated func migratedShownRepos(_ counts: Counts?) -> [String] { menuRows((counts ?? [:]).filter { $0.value > 0 }).map(\.repo) }

@@ -155,7 +155,7 @@ extension AppDelegate {
         loadFailed = false
         Task {
             do {
-                repos = try await fetchRepos(token: token)
+                repos = tickedFirst(try await fetchRepos(token: token), shown: shown)
             } catch Problem.signedOut {
                 app.disconnect(.signedOut)
             } catch {
