@@ -3,9 +3,9 @@ import ServiceManagement
 
 extension AppDelegate {
     // Opening the app again (its Dock icon, Spotlight, Finder) shows the menu at the pointer, or Settings while
-    // signed out. That also reaches it when the notch hides the menu bar icon.
+    // there's nothing to count. That also reaches it when the notch hides the menu bar icon.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if token == nil { showSettings() } else { item.menu?.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil) }
+        if !counting { showSettings() } else { item.menu?.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil) }
         return false
     }
 
@@ -22,11 +22,15 @@ extension AppDelegate {
             return entry
         }
 
-        if let problem {
+        add(tr("settings"), #selector(showSettings), key: ",").image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
+        menu.addItem(.separator())
+        // Signed out or without the GitHub CLI, the line only shows while there's nothing to count; Settings still offers
+        // to sign in.
+        if let problem, !counting || problem == .failed || problem == .missing {
             let line = switch problem {
             case .notFound: add(tr("no_gh"), #selector(showSettings))
             case .signedOut: add(tr("signed_out"), #selector(showSettings))
-            case .failed: add(tr("refresh_failed"))
+            case .failed, .missing: add(tr("refresh_failed"))
             }
             line.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: nil)
             menu.addItem(.separator())
@@ -34,14 +38,13 @@ extension AppDelegate {
             add(tr("choose"), #selector(showSettings))
             menu.addItem(.separator())
         }
-        let places = places
         // Badges sit at the right edge, in the column ⌘Q and the submenu arrows use, so counts line up with the border.
-        if let counts {
+        if let counts, !counts.isEmpty {
             let releases = releases
             for row in menuRows(counts) {
                 let entry = add(row.repo)
                 entry.badge = NSMenuItemBadge(string: row.count.formatted())
-                entry.submenu = versionsMenu(releases[row.repo] ?? [])
+                entry.submenu = versionsMenu(releases[row.repo] ?? [], repo: row.repo)
             }
             if places.list {
                 let sum = add(tr("total_row"))
@@ -50,34 +53,15 @@ extension AppDelegate {
             }
             menu.addItem(.separator())
         }
-        if let lastRefresh {
-            add(tr("updated", ["time": lastRefresh.formatted(date: .omitted, time: .shortened)]), enabled: false)
-        } else if problem == nil, token != nil {
-            add(tr("counting"), enabled: false)
+        if counting {
+            if let lastRefresh {
+                add(tr("updated", ["time": lastRefresh.formatted(date: .omitted, time: .shortened)]), enabled: false)
+            } else if problem == nil {
+                add(tr("counting"), enabled: false)
+            }
+            add(tr("refresh"), #selector(refreshNow), enabled: !busy, key: "r")
+            menu.addItem(.separator())
         }
-        add(tr("refresh"), #selector(refreshNow), enabled: token != nil && !busy, key: "r")
-        let every = NSMenu()
-        for minutes in [5, 10, 30, 60] {
-            let entry = NSMenuItem(title: minutes == 60 ? tr("hour") : tr("minutes", ["n": minutes]), action: #selector(chooseInterval), keyEquivalent: "")
-            entry.target = self
-            entry.tag = minutes
-            entry.state = defaults.integer(forKey: "interval") == minutes ? .on : .off
-            every.addItem(entry)
-        }
-        add(tr("every")).submenu = every
-        menu.addItem(.separator())
-
-        add(tr("settings"), #selector(showSettings), key: ",").image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
-        let totals = NSMenu()
-        for (title, key, on) in [(tr("menu_bar"), "totalInMenuBar", places.menuBar), (tr("list"), "totalInList", places.list)] {
-            let entry = NSMenuItem(title: title, action: #selector(toggleTotal), keyEquivalent: "")
-            entry.target = self
-            entry.representedObject = key
-            entry.state = on ? .on : .off
-            totals.addItem(entry)
-        }
-        add(tr("total")).submenu = totals
-        menu.addItem(.separator())
 
         // Registering from anywhere else (a build in /tmp) would point the login item at a bundle that disappears.
         add(tr("login"), #selector(toggleLogin), on: SMAppService.mainApp.status == .enabled,
@@ -111,28 +95,30 @@ extension AppDelegate {
         showImages(menu)
     }
 
-    /// A repository's releases with downloads, newest first, each with its count at the right edge.
-    func versionsMenu(_ releases: [Release]) -> NSMenu? {
+    /// A repository's releases with downloads, newest first, each with its count at the right edge. Clicking one
+    /// opens its page on GitHub, with its files.
+    func versionsMenu(_ releases: [Release], repo: String) -> NSMenu? {
         let shown = releases.filter { $0.downloads > 0 }
         guard !shown.isEmpty else { return nil }
         let menu = NSMenu()
-        menu.autoenablesItems = false  // rows without an action would otherwise be greyed out
+        let login = defaults.string(forKey: "login")
         for release in shown {
-            let entry = NSMenuItem(title: release.tag, action: nil, keyEquivalent: "")
+            let entry = NSMenuItem(title: release.tag, action: #selector(openRelease), keyEquivalent: "")
+            entry.target = self
+            entry.representedObject = releasePage(repo: repo, login: login, tag: release.tag)
             entry.badge = NSMenuItemBadge(string: release.downloads.formatted())
             menu.addItem(entry)
         }
         return menu
     }
 
-    @objc func refreshNow() { tick() }
-
-    @objc func toggleTotal(_ sender: NSMenuItem) {
-        guard let key = sender.representedObject as? String else { return }
-        setTotal(key, sender.state != .on)
+    @objc func openRelease(_ sender: NSMenuItem) {
+        if let url = sender.representedObject as? URL { NSWorkspace.shared.open(url) }
     }
 
-    /// The menu's Total submenu and Settings both land here, so they always agree.
+    @objc func refreshNow() { tick() }
+
+    /// Settings' Total checkboxes land here, and the menu bar follows.
     func setTotal(_ key: String, _ on: Bool) {
         defaults.set(on, forKey: key)
         render()
@@ -143,12 +129,6 @@ extension AppDelegate {
         defaults.set(sender.tag, forKey: "updateEvery")
         log.notice("updateEvery = \(sender.tag)")
         autoCheck()
-    }
-
-    @objc func chooseInterval(_ sender: NSMenuItem) {
-        defaults.set(sender.tag, forKey: "interval")
-        log.notice("interval = \(sender.tag) minutes")
-        reschedule()
     }
 
     @objc func toggleLogin() {

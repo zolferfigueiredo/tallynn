@@ -4,6 +4,7 @@ nonisolated enum Problem: Error, Sendable {
     case notFound   // no GitHub CLI, which Tallynn signs in through
     case signedOut  // the GitHub CLI has no login, or GitHub no longer accepts it
     case failed     // network, GitHub or rate limit
+    case missing    // 404: no such repository, or one this login can't read
 }
 
 nonisolated struct Repo: Decodable, Equatable, Sendable {
@@ -48,21 +49,23 @@ nonisolated let session: URLSession = {
     return URLSession(configuration: configuration)
 }()
 
-@concurrent nonisolated func get(_ url: URL, token: String) async throws(Problem) -> (Data, HTTPURLResponse) {
+/// Without a token, GitHub answers about public repositories only, 60 requests an hour from this Mac's address.
+@concurrent nonisolated func get(_ url: URL, token: String?) async throws(Problem) -> (Data, HTTPURLResponse) {
     var request = URLRequest(url: url)
-    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
     request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
     request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
     guard let (data, response) = try? await session.data(for: request), let http = response as? HTTPURLResponse else {
         throw .failed
     }
     if http.statusCode == 401 { throw .signedOut }
+    if http.statusCode == 404 { throw .missing }
     guard http.statusCode == 200 else { throw .failed }
     return (data, http)
 }
 
 /// Every page of a list.
-@concurrent nonisolated func getAll<T: Decodable & Sendable>(_ url: URL, token: String) async throws(Problem) -> [T] {
+@concurrent nonisolated func getAll<T: Decodable & Sendable>(_ url: URL, token: String?) async throws(Problem) -> [T] {
     var items: [T] = [], next: URL? = url
     while let page = next {
         let (data, response) = try await get(page, token: token)
@@ -85,14 +88,35 @@ nonisolated let session: URLSession = {
                                  token: token))
 }
 
-/// The shown repositories' releases. Any failure fails the whole refresh, so a repository that couldn't be read never
-/// looks like a drop; a shown one that was renamed or deleted just isn't listed any more.
-@concurrent nonisolated func fetchReleases(token: String, shown: Set<String>) async -> Result<[String: [Release]], Problem> {
+/// Any repository this login can read, or any public one when signed out, by "owner/repo", to add one that isn't the
+/// user's own.
+@concurrent nonisolated func fetchRepo(_ path: String, token: String?) async throws(Problem) -> Repo {
+    let (data, _) = try await get(URL(string: "https://api.github.com/repos/\(path)")!, token: token)
+    guard let repo: Repo = try? decode(data) else { throw .failed }
+    return repo
+}
+
+nonisolated func releasesURL(_ fullName: String) -> URL {
+    URL(string: "https://api.github.com/repos/\(fullName)/releases?per_page=100")!
+}
+
+/// The shown repositories' releases: the user's own while signed in, and added ones. Any failure fails the whole
+/// refresh, so a repository that couldn't be read never looks like a drop; a shown one that was renamed or deleted
+/// just isn't listed any more.
+@concurrent nonisolated func fetchReleases(token: String?, shown: Set<String>) async -> Result<[String: [Release]], Problem> {
     do {
         var releases: [String: [Release]] = [:]
-        for repo in try await fetchRepos(token: token) where shown.contains(repo.name) {
-            let url = URL(string: "https://api.github.com/repos/\(repo.fullName)/releases?per_page=100")!
-            releases[repo.name] = releaseDownloads(try await getAll(url, token: token))
+        if let token {
+            for repo in try await fetchRepos(token: token) where shown.contains(repo.name) {
+                releases[repo.name] = releaseDownloads(try await getAll(releasesURL(repo.fullName), token: token))
+            }
+        }
+        for path in shown where isAdded(path) {
+            do {
+                releases[path] = releaseDownloads(try await getAll(releasesURL(path), token: token))
+            } catch .missing {
+                continue
+            }
         }
         return .success(releases)
     } catch {

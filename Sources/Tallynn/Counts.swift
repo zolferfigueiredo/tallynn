@@ -9,18 +9,26 @@ nonisolated struct Change: Equatable, Sendable {
     let new: Int
 }
 
-/// One release's installer downloads.
+/// One release's downloads.
 nonisolated struct Release: Codable, Equatable, Sendable {
     let tag: String
     let downloads: Int
 }
 
-/// Each release's installer downloads, in GitHub's order (newest first). Only installers count, as in the author's
-/// script; a release whose assets are all something else stays, with 0.
+/// A project file people download: any asset but checksums, signatures and the metadata updaters fetch
+/// (electron-builder's latest-mac.yml and .blockmap, Sparkle's appcast). Left out rather than picked, as plain
+/// binaries (tool-v1.2.3-linux-amd64) have no extension to pick them by.
+nonisolated func counted(_ name: String) -> Bool {
+    let name = name.lowercased()
+    let skipped = [".sha1", ".sha256", ".sha512", ".md5", ".sig", ".asc", ".minisig", ".pem", ".crt",
+                   ".txt", ".md", ".json", ".jsonl", ".yml", ".yaml", ".xml", ".blockmap", ".sbom", ".spdx"]
+    return !skipped.contains { name.hasSuffix($0) } && !name.contains("checksum") && !name.contains("sha256sums")
+}
+
+/// Each release's downloads, in GitHub's order (newest first). A release whose assets are all left out stays, with 0.
 nonisolated func releaseDownloads(_ releases: [GitHubRelease]) -> [Release] {
     releases.map { release in
-        let installers = release.assets.filter { asset in [".dmg", ".exe", ".zip"].contains { asset.name.hasSuffix($0) } }
-        return Release(tag: release.tagName, downloads: installers.reduce(0) { $0 + $1.downloadCount })
+        Release(tag: release.tagName, downloads: release.assets.filter { counted($0.name) }.reduce(0) { $0 + $1.downloadCount })
     }
 }
 
@@ -72,3 +80,38 @@ nonisolated func tickedFirst(_ repos: [Repo], shown: Set<String>) -> [Repo] {
 
 /// Before repositories could be picked, every one with downloads was shown, so an upgrade starts with those ticked.
 nonisolated func migratedShownRepos(_ counts: Counts?) -> [String] { menuRows((counts ?? [:]).filter { $0.value > 0 }).map(\.repo) }
+
+/// Added repositories are keyed by "owner/repo", the user's own by their name, which has no "/".
+nonisolated func isAdded(_ repo: String) -> Bool { repo.contains("/") }
+
+/// "owner/repo", typed so or pasted as a GitHub link (https://github.com/owner/repo/releases, …/repo.git). nil for
+/// anything else, so only a repository's path reaches the API.
+nonisolated func repoPath(_ input: String) -> String? {
+    var path = input.trimmingCharacters(in: .whitespacesAndNewlines)
+    for prefix in ["https://", "http://", "www.", "github.com/"] where path.lowercased().hasPrefix(prefix) {
+        path.removeFirst(prefix.count)
+    }
+    let parts = path.split(whereSeparator: { "/?#".contains($0) }).prefix(2).map(String.init)
+    guard parts.count == 2 else { return nil }
+    let owner = parts[0], repo = parts[1].hasSuffix(".git") ? String(parts[1].dropLast(4)) : parts[1]
+    guard owner.wholeMatch(of: /[A-Za-z0-9-]+/) != nil, repo.wholeMatch(of: /[A-Za-z0-9_.-]+/) != nil,
+          !repo.allSatisfy({ $0 == "." }) else { return nil }
+    return "\(owner)/\(repo)"
+}
+
+/// A release's page on GitHub, with its files. An own repository is keyed by its name, an added one by "owner/repo".
+nonisolated func releasePage(repo: String, login: String?, tag: String) -> URL? {
+    guard let path = isAdded(repo) ? repo : login.map({ "\($0)/\(repo)" }),
+          let tag = tag.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else { return nil }
+    return URL(string: "https://github.com/\(path)/releases/tag/\(tag)")
+}
+
+/// Signing in as `login` turns the user's own repositories, added as "login/x" while signed out, into "x", so each is
+/// listed and counted once. A ticked one stays ticked under its own name.
+nonisolated func mergingOwn(added: [String], shown: Set<String>, login: String) -> (added: [String], shown: Set<String>) {
+    let prefix = login.lowercased() + "/"
+    let own = added.filter { $0.lowercased().hasPrefix(prefix) }
+    var shown = shown
+    for repo in own where shown.remove(repo) != nil { shown.insert(String(repo.dropFirst(prefix.count))) }
+    return (added.filter { !own.contains($0) }, shown)
+}
