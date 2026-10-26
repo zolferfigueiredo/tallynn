@@ -1,8 +1,10 @@
 import Foundation
 import UserNotifications
 
-/// One notification for everything that changed in a refresh, asking for permission the first time.
+/// One notification for everything that changed in a refresh, asking for permission the first time. None while
+/// Notifications is off in Settings.
 func notify(_ changes: [Change]) {
+    guard UserDefaults.standard.bool(forKey: "notifications") else { return }
     Task {
         let center = UNUserNotificationCenter.current()
         guard (try? await center.requestAuthorization(options: [.alert, .sound])) == true else { return }

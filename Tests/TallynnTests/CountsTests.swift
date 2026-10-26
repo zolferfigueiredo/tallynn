@@ -2,12 +2,16 @@ import Foundation
 import Testing
 @testable import Tallynn
 
-@Test func onlyInstallersCountPerRelease() throws {
+@Test func projectFilesCountButChecksumsAndMetadataDont() throws {
     let json = """
     [{"tag_name": "v2.0", "assets": [{"name": "App.dmg", "download_count": 300}, {"name": "App.exe", "download_count": 50},
                                      {"name": "App.zip", "download_count": 10}, {"name": "checksums.txt", "download_count": 99},
-                                     {"name": "App.dmg.sig", "download_count": 7}]},
-     {"tag_name": "v1.0", "assets": [{"name": "App.dmg", "download_count": 42}]},
+                                     {"name": "App.dmg.sig", "download_count": 7}, {"name": "App.dmg.blockmap", "download_count": 8},
+                                     {"name": "latest-mac.yml", "download_count": 900}, {"name": "SHA256SUMS", "download_count": 4},
+                                     {"name": "sbom.spdx.json", "download_count": 3}]},
+     {"tag_name": "v1.0", "assets": [{"name": "App.pkg", "download_count": 1}, {"name": "App.msi", "download_count": 2},
+                                     {"name": "app_1.0_amd64.deb", "download_count": 4}, {"name": "app-1.0-linux.tar.gz", "download_count": 8},
+                                     {"name": "firmware.bin", "download_count": 16}, {"name": "app-v1.0-linux-arm64", "download_count": 11}]},
      {"tag_name": "v0.9", "assets": [{"name": "notes.txt", "download_count": 5}]}]
     """
     let releases: [GitHubRelease] = try decode(Data(json.utf8))
@@ -116,4 +120,24 @@ import Testing
 @Test func migrationShowsReposWithDownloads() {
     #expect(migratedShownRepos(["theej": 362, "weej": 16, "zolferfigueiredo": 0]) == ["theej", "weej"])
     #expect(migratedShownRepos(nil).isEmpty)
+}
+
+@Test func addsARepositoryByNameOrLinkAndOpensItsReleases() {
+    #expect(repoPath("cli/cli") == "cli/cli")
+    #expect(repoPath(" https://github.com/apple/swift-format/releases/tag/1.0 ") == "apple/swift-format")
+    #expect(repoPath("github.com/owner/repo.git") == "owner/repo")
+    #expect(repoPath("https://www.github.com/owner/my.repo?tab=readme") == "owner/my.repo")
+    #expect(repoPath("nope") == nil)
+    #expect(repoPath("owner/..") == nil)
+    #expect(repoPath("own er/repo") == nil)
+    #expect(releasePage(repo: "theej", login: "zolfer", tag: "v1.0") == URL(string: "https://github.com/zolfer/theej/releases/tag/v1.0"))
+    #expect(releasePage(repo: "cli/cli", login: "zolfer", tag: "v2 beta#1") == URL(string: "https://github.com/cli/cli/releases/tag/v2%20beta%231"))
+    #expect(releasePage(repo: "theej", login: nil, tag: "v1.0") == nil)
+}
+
+@Test func ownRepositoriesAddedWhileSignedOutBecomeOwnOnSignIn() {
+    let merged = mergingOwn(added: ["cli/cli", "Zolfer/theej", "zolfer/weej"], shown: ["cli/cli", "Zolfer/theej", "claudiostat"],
+                            login: "zolfer")
+    #expect(merged.added == ["cli/cli"])
+    #expect(merged.shown == ["cli/cli", "theej", "claudiostat"])
 }

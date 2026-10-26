@@ -15,8 +15,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// The GitHub CLI's token, read again on each refresh and kept only in memory. Never logged.
     var token: String?
 
-    /// The counts of the last successful refresh. nil until the first one (no baseline yet), and while signed out.
-    var counts: Counts? { token == nil ? nil : defaults.dictionary(forKey: "counts") as? Counts }
+    /// The counts of the last successful refresh, nil until the first one (no baseline yet). While signed out, only
+    /// the added public repositories', so the user's own, maybe private, never show.
+    var counts: Counts? {
+        let counts = defaults.dictionary(forKey: "counts") as? Counts
+        return token == nil ? counts?.filter { isAdded($0.key) } : counts
+    }
     var lastRefresh: Date? { defaults.object(forKey: "lastRefresh") as? Date }
     /// Each repository's releases from the last successful refresh, for the per-version submenus.
     var releases: [String: [Release]] {
@@ -24,26 +28,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     /// The repositories ticked in Settings. New ones stay hidden until ticked.
     var shownRepos: Set<String> { Set(defaults.stringArray(forKey: "shownRepos") ?? []) }
+    /// Public repositories added in Settings, kept while switched off until removed. Ticked ones count too, so one
+    /// ticked before this list existed still shows.
+    var addedRepos: [String] {
+        Set(defaults.stringArray(forKey: "addedRepos") ?? []).union(shownRepos.filter(isAdded)).sorted()
+    }
+    /// Something to count: a ticked repository of the user's while signed in, or an added public one.
+    var counting: Bool { shownRepos.contains { token != nil || isAdded($0) } }
     var places: (menuBar: Bool, list: Bool) {
         (defaults.bool(forKey: "totalInMenuBar"), defaults.bool(forKey: "totalInList"))
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        defaults.register(defaults: ["interval": 10, "totalInMenuBar": true, "totalInList": false, "updateEvery": 604800])
+        defaults.register(defaults: ["interval": 10, "totalInMenuBar": true, "totalInList": false, "updateEvery": 604800,
+                                     "notifications": true])
         if defaults.object(forKey: "shownRepos") == nil {
             defaults.set(migratedShownRepos(defaults.dictionary(forKey: "counts") as? Counts), forKey: "shownRepos")
+        }
+        // 0.4.5 counts every project file, not just .dmg, .exe and .zip: a quiet baseline, so the jump isn't announced.
+        if defaults.integer(forKey: "countRules") < 2 {
+            clearCounts()
+            defaults.set(2, forKey: "countRules")
         }
         let menu = NSMenu()
         menu.delegate = self
         menu.autoenablesItems = false
         item.menu = menu
+        NSApp.mainMenu = editMenu()
         UNUserNotificationCenter.current().delegate = self
         render()
         Task {
             await connect()
             render()
             reschedule()
-            if token == nil, problem != .failed { showSettings() }
+            if !counting, problem != .failed { showSettings() }
             autoCheck()  // needs the sign-in, so after connecting
         }
         let updates = Timer(timeInterval: 3600, target: self, selector: #selector(autoCheck), userInfo: nil, repeats: true)
@@ -63,14 +81,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         self.timer = timer
     }
 
+    func setInterval(_ minutes: Int) {
+        defaults.set(minutes, forKey: "interval")
+        log.notice("interval = \(minutes) minutes")
+        reschedule()
+    }
+
     @objc func tick() {
         guard !busy else { again = true; return }
         busy = true
         Task {
             await connect()
-            if let token {
+            let token = token
+            if counting {
                 let result = await fetchReleases(token: token, shown: shownRepos)
-                // Signed out, or another account signed in, while it asked: the answer is stale.
+                // Signed in or out, or another account signed in, while it asked: the answer is stale.
                 if token == self.token { apply(result) }
             }
             busy = false
@@ -105,7 +130,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             defaults.set(fresh, forKey: "counts")
             defaults.set(try? JSONEncoder().encode(releases), forKey: "releases")
             defaults.set(Date.now, forKey: "lastRefresh")
-            problem = nil
+            if token != nil { problem = nil }  // signed out, the menu keeps offering to sign in
             if !found.isEmpty { notify(found) }
             log.notice("counts: \(fresh.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }.joined(separator: ", "), privacy: .public), total \(total(fresh)), changes \(found.count)")
         case .failure(.signedOut):
@@ -123,6 +148,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             defaults.set([String](), forKey: "shownRepos")
             clearCounts()
         }
+        let merged = mergingOwn(added: addedRepos, shown: shownRepos, login: login)
+        defaults.set(merged.added, forKey: "addedRepos")
+        defaults.set(merged.shown.sorted(), forKey: "shownRepos")
         defaults.set(login, forKey: "login")
         self.token = token
         problem = nil
@@ -165,6 +193,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         button.title = title ?? ""
         button.imagePosition = title == nil ? .imageOnly : .imageLeading
     }
+}
+
+/// A menu bar app has no menu bar of its own, so text fields get ⌘X, ⌘C, ⌘V, ⌘A and ⌘Z from this hidden Edit menu.
+/// Never shown, so its titles aren't translated.
+func editMenu() -> NSMenu {
+    let edit = NSMenu(title: "Edit")
+    edit.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+    edit.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
+    edit.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+    edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+    edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+    edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+    let item = NSMenuItem()
+    item.submenu = edit
+    let main = NSMenu()
+    main.addItem(item)
+    return main
 }
 
 /// The Tallinn silhouette run.sh and build.sh draw into the bundle, or a stand-in when run without one.
