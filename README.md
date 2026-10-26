@@ -38,7 +38,7 @@ You need:
 ## Features
 
 - **Counts what people download.** Every project file of every release, per repository and in total: installers, packages, archives and binaries (`.dmg`, `.pkg`, `.exe`, `.msi`, `.zip`, `.tar.gz`, `.deb`, `.rpm`, `.AppImage`, `.bin`, plain binaries and the like). Checksums, signatures, the metadata updaters fetch (`latest-mac.yml`, `.blockmap`, appcasts) and GitHub's source code archives don't count.
-- **Tells you right away.** One notification with a sound for each refresh that finds a change: `theej +3 (364)`, a line per repository. A drop, say after you delete a release, says `-30`.
+- **Tells you right away.** One notification with a sound for each refresh that finds a change: `theej +3 (364)`, a line per repository. A drop, say after you delete a release, says `-30`. **Notifications** in Settings turns them off, along with the one about a new version.
 - **No surprises.** The first refresh after signing in, and a repository you've just ticked, set a quiet baseline. Only the downloads after that are announced, and a relaunch never repeats them.
 - **Per version.** Each repository opens a submenu with its releases that have downloads, newest first, and the downloads of each. Clicking one opens its release page on GitHub, with its files, in your browser.
 - **Public and private.** Pick any of your own repositories in Settings, with a lock on the private ones. New ones stay hidden until you tick them. Add anyone else's public repository by `owner/repo` or its GitHub link, signed in or not. Switched off, it stays in the list; its trash button removes it, after asking.
@@ -63,7 +63,7 @@ Every 5, 10, 30 or 60 minutes, and when you choose **Refresh**, Tallynn asks Git
 <summary><b>Every setting</b></summary>
 
 - **Settings…** (⌘,), first in the menu, above the repositories:
-  - **General**: the language first, then the **Refresh rate** (5, 10 (default) or 30 minutes, or 1 hour), the **Total** (**Menu bar** on, **List** off), your GitHub account, and the repositories to count (yours, and any public ones you add).
+  - **General**: **App** first, with the language, the **Refresh rate** (5, 10 (default) or 30 minutes, or 1 hour) and **Notifications** (on), then the **Total** (**Menu bar** on, **List** off), your GitHub account, and the repositories to count (yours, and any public ones you add).
   - **About**: the version with Check for updates, and links to the author, the website and Buy me a coffee.
 - **Refresh** (⌘R), shown once there's a repository to count.
 - **Launch at login** (from the Applications folder) and **Keep in Dock**, which asks first because macOS restarts the Dock to change it.

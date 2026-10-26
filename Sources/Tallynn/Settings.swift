@@ -75,6 +75,7 @@ extension AppDelegate {
     var totalInMenuBar = true
     var totalInList = false
     var interval = 10
+    var notifications = true
     var adding = ""
     var addFailed = false
     var addingNow = false
@@ -90,6 +91,7 @@ extension AppDelegate {
         shown = app.shownRepos
         loadTotal()
         interval = app.defaults.integer(forKey: "interval")
+        notifications = app.defaults.bool(forKey: "notifications")
         if app.token != nil { return signedIn(app.defaults.string(forKey: "login") ?? "GitHub") }
         guard signingIn == nil else { return }
         step = ghPath() == nil ? .notFound : .signedOut
@@ -215,6 +217,12 @@ extension AppDelegate {
         toggle(repo, false)
     }
 
+    func setNotifications(_ on: Bool) {
+        notifications = on
+        app.defaults.set(on, forKey: "notifications")
+        log.notice("notifications = \(on)")
+    }
+
     func setInterval(_ minutes: Int) {
         interval = minutes
         app.setInterval(minutes)
@@ -260,13 +268,14 @@ struct SettingsView: View {
         let _ = settings.language
         Form {
             // First, in every step: someone who can't read the rest can still find their language.
-            Section {
+            Section(tr("app")) {
                 Picker(tr("language"), selection: Binding(get: { settings.language }, set: { settings.setLanguage($0) })) {
                     ForEach(Language.allCases, id: \.self) { Text("\($0.flag) \($0.name)").tag($0) }
                 }
                 Picker(tr("every"), selection: Binding(get: { settings.interval }, set: { settings.setInterval($0) })) {
                     ForEach([5, 10, 30, 60], id: \.self) { Text($0 == 60 ? tr("hour") : tr("minutes", ["n": $0])).tag($0) }
                 }
+                Toggle(tr("notifications"), isOn: Binding(get: { settings.notifications }, set: { settings.setNotifications($0) }))
             }
             // Where the total shows. Both can be off.
             Section(tr("total")) {

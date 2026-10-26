@@ -40,7 +40,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        defaults.register(defaults: ["interval": 10, "totalInMenuBar": true, "totalInList": false, "updateEvery": 604800])
+        defaults.register(defaults: ["interval": 10, "totalInMenuBar": true, "totalInList": false, "updateEvery": 604800,
+                                     "notifications": true])
         if defaults.object(forKey: "shownRepos") == nil {
             defaults.set(migratedShownRepos(defaults.dictionary(forKey: "counts") as? Counts), forKey: "shownRepos")
         }

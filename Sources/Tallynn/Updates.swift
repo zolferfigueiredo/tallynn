@@ -176,6 +176,8 @@ final class UpdateProgress: NSObject {
 /// False when notifications aren't allowed, so the caller falls back to the alert.
 func notifyUpdate(_ version: String) async -> Bool {
     if UserDefaults.standard.string(forKey: "notifiedVersion") == version { return true }
+    // Notifications off: the menu's Update available! says it, without an alert either.
+    guard UserDefaults.standard.bool(forKey: "notifications") else { return true }
     let center = UNUserNotificationCenter.current()
     guard (try? await center.requestAuthorization(options: [.alert, .sound])) == true else { return false }
     let content = UNMutableNotificationContent()
