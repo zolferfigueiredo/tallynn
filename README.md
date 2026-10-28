@@ -81,7 +81,7 @@ While signed out with nothing to count, the menu says **Sign in to GitHub…** a
 ./build.sh
 ```
 
-It runs the tests, builds a universal `dist/dmg/Tallynn.app` and writes `dist/Tallynn-<version>.dmg`, laid out by Finder with the app and an Applications shortcut. It needs Xcode 26 (Swift 6.2 or later). It signs ad hoc unless `SIGN_ID` names your signing identity. Every intermediate goes to a folder in `/tmp` that is deleted when the script ends.
+It runs the tests, builds a universal `dist/dmg/Tallynn.app` and writes `dist/Tallynn-<version>.dmg` with the app and an Applications shortcut, in the window layout Finder saved once (`dmg/layout.sh` makes it again when the background or the icon spots change). It needs Xcode 26 (Swift 6.2 or later). It signs ad hoc unless `SIGN_ID` names your signing identity. Every intermediate goes to a folder in `/tmp` that is deleted when the script ends.
 
 To try a change, run `./run.sh`. It builds a debug copy in `/tmp/tallynn-run`, quits any running Tallynn and opens the new one. `swift test` runs the tests alone.
 
