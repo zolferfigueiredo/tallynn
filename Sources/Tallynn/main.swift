@@ -195,7 +195,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 }
 
-/// A menu bar app has no menu bar of its own, so text fields get ⌘X, ⌘C, ⌘V, ⌘A and ⌘Z from this hidden Edit menu.
+/// A menu bar app has no menu bar of its own, so text fields get ⌘X, ⌘C, ⌘V, ⌘A and ⌘Z from this hidden Edit menu,
+/// and ⌘W and ⌘Q close the window in front. Quitting would take the download count out of the menu bar.
 /// Never shown, so its titles aren't translated.
 func editMenu() -> NSMenu {
     let edit = NSMenu(title: "Edit")
@@ -209,6 +210,9 @@ func editMenu() -> NSMenu {
     item.submenu = edit
     let main = NSMenu()
     main.addItem(item)
+    let keys = NSMenu()
+    for key in ["w", "q"] { keys.addItem(withTitle: "", action: #selector(NSWindow.performClose(_:)), keyEquivalent: key) }
+    main.addItem(withTitle: "", action: nil, keyEquivalent: "").submenu = keys
     return main
 }
 
