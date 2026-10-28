@@ -7,7 +7,7 @@ on:
     branches: [main]
   workflow_dispatch:
   pull_request:  # builds only, so a change to the release can be tried before it merges
-    paths: [release.sh, build.sh, Icon/**, .github/workflows/release.yml]
+    paths: [release.sh, build.sh, Icon/**, dmg/layout.DS_Store, .github/workflows/release.yml]
 permissions:
   contents: write
 # Per ref, so a pull request's trial never waits behind or cancels a release.
@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
-      # The tests, the universal app and the DMG laid out by Finder, signed ad hoc: no Developer ID, notarizing or release.
+      # The tests, the universal app and the DMG, signed ad hoc: no Developer ID, notarizing or release.
       - if: github.event_name == 'pull_request'
         run: ./build.sh
       # No GH_TOKEN: gh uses z's own login on this Mac, so the release is zolferfigueiredo's, not github-actions[bot]'s.
