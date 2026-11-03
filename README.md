@@ -117,5 +117,5 @@ Unofficial. Not affiliated with or endorsed by GitHub. It uses the GitHub CLI an
 ---
 
 <p align="center">
-  Made with ❤️ by <a href="https://zolfer.com">zolfer.com</a>
+  Made with 💙 by <a href="https://zolfer.com">zolfer.com</a>
 </p>
