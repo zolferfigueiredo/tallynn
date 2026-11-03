@@ -1,7 +1,6 @@
 name: Release
-# Every push to main whose version isn't released yet becomes a release: the self-hosted runner on z's Mac builds,
-# signs, notarizes and publishes it. Nothing runs on GitHub's own machines, which bill minutes on a private repo;
-# self-hosted runs are free and use no artifacts. If that ever changes, ./release.sh by hand does the same.
+# Every push to main whose version isn't released yet becomes a release. GitHub's Mac builds the unsigned app, and
+# the self-hosted runner on z's Mac signs, notarizes and publishes it, since the Developer ID key stays in its keychain.
 on:
   push:
     branches: [main]
@@ -14,15 +13,44 @@ permissions:
 concurrency:
   group: release-${{ github.ref }}
 jobs:
-  release:
-    name: ${{ github.event_name == 'pull_request' && 'Build the DMG, as a trial' || 'Build, sign, notarize and publish' }}
+  build:
+    name: Build the unsigned app
+    runs-on: macos-26
+    timeout-minutes: 30
+    outputs:
+      built: ${{ steps.app.outputs.built }}
+    steps:
+      - uses: actions/checkout@v5
+      - run: ./release.sh build
+        env:
+          GH_TOKEN: ${{ github.token }}
+      # A tarball, because an artifact loses the binary's execute bit.
+      - id: app
+        run: |
+          [ -d dist/dmg ] || exit 0
+          tar -czf app.tgz -C dist dmg
+          echo built=true >> "$GITHUB_OUTPUT"
+      - if: steps.app.outputs.built
+        uses: actions/upload-artifact@v7
+        with:
+          name: app
+          path: app.tgz
+          retention-days: 7
+  # Never for a pull request, so nobody else's code reaches z's Mac.
+  sign:
+    name: Sign, notarize and publish
+    needs: build
+    if: needs.build.outputs.built && github.event_name != 'pull_request'
     runs-on: [self-hosted, macOS, release]
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
-      # The tests, the universal app and the DMG, signed ad hoc: no Developer ID, notarizing or release.
-      - if: github.event_name == 'pull_request'
-        run: ./build.sh
+      - uses: actions/download-artifact@v8
+        with:
+          name: app
       # No GH_TOKEN: gh uses z's own login on this Mac, so the release is zolferfigueiredo's, not github-actions[bot]'s.
-      - if: github.event_name != 'pull_request'
-        run: ./release.sh
+      - run: |
+          rm -rf dist
+          mkdir dist
+          tar -xzf app.tgz -C dist
+          ./release.sh sign

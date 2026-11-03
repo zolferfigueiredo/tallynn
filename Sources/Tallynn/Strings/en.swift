@@ -71,8 +71,6 @@ extension Strings {
         "settings": "Settings…",
         "sign_in_failed": "Couldn’t sign in to GitHub. Try again.",
         "sign_in_github": "Sign in with GitHub",
-        "sign_in_to_check": "Sign in to check for updates",
-        "sign_in_to_check_text": "Tallynn’s releases are in a private GitHub repository. Sign in with GitHub in Settings, then check again.",
         "sign_out": "Sign out",
         "sign_out_text": "Tallynn uses the GitHub CLI’s login, so this also signs the GitHub CLI out on this Mac.",
         "sign_out_title": "Sign out of GitHub?",

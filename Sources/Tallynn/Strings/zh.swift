@@ -71,8 +71,6 @@ extension Strings {
         "settings": "设置…",
         "sign_in_failed": "无法登录 GitHub。请重试。",
         "sign_in_github": "使用 GitHub 登录",
-        "sign_in_to_check": "登录以检查更新",
-        "sign_in_to_check_text": "Tallynn 的发布版本在一个私有 GitHub 仓库中。请在设置中使用 GitHub 登录，然后再次检查。",
         "sign_out": "退出登录",
         "sign_out_text": "Tallynn 使用 GitHub CLI 的登录，因此这也会让这台 Mac 上的 GitHub CLI 退出登录。",
         "sign_out_title": "退出 GitHub 登录？",

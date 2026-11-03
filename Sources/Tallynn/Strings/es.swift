@@ -71,8 +71,6 @@ extension Strings {
         "settings": "Ajustes…",
         "sign_in_failed": "No se pudo iniciar sesión en GitHub. Inténtalo de nuevo.",
         "sign_in_github": "Iniciar sesión con GitHub",
-        "sign_in_to_check": "Inicia sesión para buscar actualizaciones",
-        "sign_in_to_check_text": "Las versiones de Tallynn están en un repositorio privado de GitHub. Inicia sesión con GitHub en Ajustes y vuelve a buscar.",
         "sign_out": "Cerrar sesión",
         "sign_out_text": "Tallynn usa la sesión de GitHub CLI, así que esto también cierra la sesión de GitHub CLI en este Mac.",
         "sign_out_title": "¿Cerrar sesión en GitHub?",
