@@ -32,9 +32,6 @@ nonisolated func releaseDownloads(_ releases: [GitHubRelease]) -> [Release] {
     }
 }
 
-/// The newest releases counted per repository: one page of GitHub's.
-nonisolated let releaseLimit = 50
-
 /// Each repository's downloads, from its releases.
 nonisolated func repoCounts(_ releases: [String: [Release]]) -> Counts {
     releases.mapValues { $0.reduce(0) { $0 + $1.downloads } }
@@ -52,11 +49,11 @@ nonisolated func total(_ releases: [String: [Release]]) -> Int {
     releases.values.reduce(0) { $0 + ($1.map(\.downloads).max() ?? 0) }
 }
 
-/// The last counts without the releases a newer one pushed out of the newest 50, so those aren't a drop. A release
-/// deleted from a repository with that many goes unnoticed the same way.
-nonisolated func withoutPushedOut(_ old: Counts, previous: [String: [Release]], fresh: [String: [Release]]) -> Counts {
+/// The last counts without the releases a newer one pushed out of the newest `limit`, so those aren't a drop. A
+/// release deleted from a repository with that many goes unnoticed the same way.
+nonisolated func withoutPushedOut(_ old: Counts, previous: [String: [Release]], fresh: [String: [Release]], limit: Int) -> Counts {
     var old = old
-    for (repo, releases) in fresh where releases.count == releaseLimit && old[repo] != nil {
+    for (repo, releases) in fresh where releases.count == limit && old[repo] != nil {
         let tags = Set(releases.map(\.tag))
         old[repo] = (previous[repo] ?? []).filter { tags.contains($0.tag) }.reduce(0) { $0 + $1.downloads }
     }

@@ -37,8 +37,8 @@ You need:
 
 ## Features
 
-- **Counts what people download.** Every project file of each repository's 50 newest releases: installers, packages, archives and binaries (`.dmg`, `.pkg`, `.exe`, `.msi`, `.zip`, `.tar.gz`, `.deb`, `.rpm`, `.AppImage`, `.bin`, plain binaries and the like). Checksums, signatures, the metadata updaters fetch (`latest-mac.yml`, `.blockmap`, appcasts) and GitHub's source code archives don't count.
-- **Tells you right away.** One notification with a sound for each refresh that finds a change: `theej +3 (364)`, a line per repository. A drop, say after you delete a release, says `-30`. A release pushed out of the newest 50 by a new one is no drop. **Notifications** in Settings turns them off, along with the one about a new version.
+- **Counts what people download.** Every project file of each repository's newest releases, 50 unless you pick 10, 25 or 100: installers, packages, archives and binaries (`.dmg`, `.pkg`, `.exe`, `.msi`, `.zip`, `.tar.gz`, `.deb`, `.rpm`, `.AppImage`, `.bin`, plain binaries and the like). Checksums, signatures, the metadata updaters fetch (`latest-mac.yml`, `.blockmap`, appcasts) and GitHub's source code archives don't count.
+- **Tells you right away.** One notification with a sound for each refresh that finds a change: `theej +3 (364)`, a line per repository. A drop, say after you delete a release, says `-30`. A release pushed out of the counted ones by a new one is no drop, and neither is picking another number of releases. **Notifications** in Settings turns them off, along with the one about a new version.
 - **No surprises.** The first refresh after signing in, and a repository you've just ticked, set a quiet baseline. Only the downloads after that are announced, and a relaunch never repeats them.
 - **Most downloaded and newest.** Each repository's row shows its most downloaded release's downloads in a badge, and its newest release's in grey beside it, unless they're the same number.
 - **Per version.** Each repository opens a submenu with its releases that have downloads, newest first, and the downloads of each. Clicking one opens its release page on GitHub, with its files, in your browser.
@@ -55,7 +55,7 @@ You need:
 Every 5, 10, 30 or 60 minutes, and when you choose **Refresh**, Tallynn asks GitHub for your repositories and their releases, and adds up the downloads.
 
 - It asks the GitHub CLI for its token (`gh auth token`) on each refresh, so signing in, out or switching accounts in Terminal is followed straight away. **Sign in with GitHub** runs the CLI's own browser sign-in, and **Sign out** signs the CLI out on this Mac, after asking.
-- It calls GitHub's REST API: `GET /user`, `GET /user/repos` (your own repositories, forks left out), `GET /repos/{owner}/{repo}` when you add one, and each ticked repository's 50 newest releases, in one request. Nothing is cached on disk. An added repository that's deleted or made private just isn't listed any more. Signed out, it asks about the added public repositories without a login, which GitHub allows 60 times an hour from your Mac: one request per repository each refresh, so with many of them pick a slower refresh rate.
+- It calls GitHub's REST API: `GET /user`, `GET /user/repos` (your own repositories, forks left out), `GET /repos/{owner}/{repo}` when you add one, and each ticked repository's newest releases, in one request. Nothing is cached on disk. An added repository that's deleted or made private just isn't listed any more. Signed out, it asks about the added public repositories without a login, which GitHub allows 60 times an hour from your Mac: one request per repository each refresh, so with many of them pick a slower refresh rate.
 - It keeps only the last counts and releases, to compare with the next refresh. A refresh that fails keeps them as they were, so a repository that couldn't be read never looks like a drop, and the menu says **Couldn't refresh**.
 - **Check for updates…** asks GitHub for this repository's latest release with the same sign-in, since the repository is private, and downloads its DMG the same way. The token goes only to GitHub's API, not to the download's storage link. An update installs only if the app inside is signed by the same developer, has Tallynn's identifier and the expected version, and only into the copy in Applications. A window shows each step, and **Reopen** starts the new version.
 - Only one copy runs at a time: opening another one, say from the DMG, quits the copy already running.
@@ -64,7 +64,7 @@ Every 5, 10, 30 or 60 minutes, and when you choose **Refresh**, Tallynn asks Git
 <summary><b>Every setting</b></summary>
 
 - **Settings…** (⌘,), first in the menu, above the repositories:
-  - **General**: **App** first, with the language, the **Refresh rate** (5, 10 (default) or 30 minutes, or 1 hour) and **Notifications** (on), then the **Total** (**Menu bar** on, **List** off), your GitHub account, and the repositories to count (yours, and any public ones you add).
+  - **General**: **App** first, with the language, the **Refresh rate** (5, 10 (default) or 30 minutes, or 1 hour), the **Newest releases counted** (10, 25, 50 (default) or 100) and **Notifications** (on), then the **Total** (**Menu bar** on, **List** off), your GitHub account, and the repositories to count (yours, and any public ones you add).
   - **About**: the version with Check for updates, and links to the author, the website and Buy me a coffee.
 - **Refresh** (⌘R), shown once there's a repository to count.
 - **Launch at login** (from the Applications folder) and **Keep in Dock**, which asks first because macOS restarts the Dock to change it.

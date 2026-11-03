@@ -39,13 +39,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     /// Something to count: a ticked repository of the user's while signed in, or an added public one.
     var counting: Bool { shownRepos.contains { token != nil || isAdded($0) } }
+    /// How many of each repository's newest releases are counted.
+    var releaseLimit: Int { defaults.integer(forKey: "releaseLimit") }
     var places: (menuBar: Bool, list: Bool) {
         (defaults.bool(forKey: "totalInMenuBar"), defaults.bool(forKey: "totalInList"))
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         defaults.register(defaults: ["interval": 10, "totalInMenuBar": true, "totalInList": false, "updateEvery": 604800,
-                                     "notifications": true])
+                                     "notifications": true, "releaseLimit": 50])
         if defaults.object(forKey: "shownRepos") == nil {
             defaults.set(migratedShownRepos(defaults.dictionary(forKey: "counts") as? Counts), forKey: "shownRepos")
         }
@@ -85,6 +87,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         self.timer = timer
     }
 
+    /// Counting more or fewer releases moves every count at once, so the next refresh is a quiet baseline.
+    func setReleaseLimit(_ limit: Int) {
+        defaults.set(limit, forKey: "releaseLimit")
+        log.notice("releaseLimit = \(limit)")
+        clearCounts()
+        render()
+        tick()
+    }
+
     func setInterval(_ minutes: Int) {
         defaults.set(minutes, forKey: "interval")
         log.notice("interval = \(minutes) minutes")
@@ -96,11 +107,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         busy = true
         Task {
             await connect()
-            let token = token
+            let token = token, limit = releaseLimit
             if counting {
-                let result = await fetchReleases(token: token, shown: shownRepos)
-                // Signed in or out, or another account signed in, while it asked: the answer is stale.
-                if token == self.token { apply(result) }
+                let result = await fetchReleases(token: token, shown: shownRepos, limit: limit)
+                // Signed in or out, another account signed in, or another number of releases picked while it asked:
+                // the answer is stale.
+                if token == self.token, limit == releaseLimit { apply(result) }
             }
             busy = false
             render()
@@ -130,7 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let shown = shownRepos
             let releases = keepingLast(fetched.filter { shown.contains($0.key) }, previous: self.releases)
             let fresh = repoCounts(releases)
-            let found = changes(old: counts.map { withoutPushedOut($0, previous: self.releases, fresh: releases) }, new: fresh)
+            let found = changes(old: counts.map { withoutPushedOut($0, previous: self.releases, fresh: releases, limit: releaseLimit) }, new: fresh)
             defaults.set(fresh, forKey: "counts")
             defaults.set(try? JSONEncoder().encode(releases), forKey: "releases")
             defaults.set(Date.now, forKey: "lastRefresh")

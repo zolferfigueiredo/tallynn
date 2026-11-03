@@ -75,6 +75,7 @@ extension AppDelegate {
     var totalInMenuBar = true
     var totalInList = false
     var interval = 10
+    var releaseLimit = 50
     var notifications = true
     var adding = ""
     var addFailed = false
@@ -91,6 +92,7 @@ extension AppDelegate {
         shown = app.shownRepos
         loadTotal()
         interval = app.defaults.integer(forKey: "interval")
+        releaseLimit = app.releaseLimit
         notifications = app.defaults.bool(forKey: "notifications")
         if app.token != nil { return signedIn(app.defaults.string(forKey: "login") ?? "GitHub") }
         guard signingIn == nil else { return }
@@ -228,6 +230,11 @@ extension AppDelegate {
         app.setInterval(minutes)
     }
 
+    func setReleaseLimit(_ limit: Int) {
+        releaseLimit = limit
+        app.setReleaseLimit(limit)
+    }
+
     func toggle(_ repo: String, _ on: Bool) {
         if on { shown.insert(repo) } else { shown.remove(repo) }
         app.show(repo, on)
@@ -274,6 +281,10 @@ struct SettingsView: View {
                 }
                 Picker(tr("every"), selection: Binding(get: { settings.interval }, set: { settings.setInterval($0) })) {
                     ForEach([5, 10, 30, 60], id: \.self) { Text($0 == 60 ? tr("hour") : tr("minutes", ["n": $0])).tag($0) }
+                }
+                // 100 at most: GitHub's largest page, so each repository stays one request.
+                Picker(tr("releases_counted"), selection: Binding(get: { settings.releaseLimit }, set: { settings.setReleaseLimit($0) })) {
+                    ForEach([10, 25, 50, 100], id: \.self) { Text($0.formatted()).tag($0) }
                 }
                 Toggle(tr("notifications"), isOn: Binding(get: { settings.notifications }, set: { settings.setNotifications($0) }))
             }

@@ -67,11 +67,11 @@ import Testing
 }
 
 @Test func aReleasePushedOutOfTheNewest50IsntADrop() {
-    let tags = (1...releaseLimit + 1).reversed().map { Release(tag: "v\($0)", downloads: 1) }
+    let tags = (1...51).reversed().map { Release(tag: "v\($0)", downloads: 1) }
     let previous = ["big": Array(tags.dropFirst()), "small": [Release(tag: "v2", downloads: 5), Release(tag: "v1", downloads: 4)]]
     let fresh = ["big": Array(tags.dropLast()), "small": [Release(tag: "v2", downloads: 5)]]
-    let old = withoutPushedOut(repoCounts(previous), previous: previous, fresh: fresh)
-    #expect(old == ["big": releaseLimit - 1, "small": 9])
+    let old = withoutPushedOut(repoCounts(previous), previous: previous, fresh: fresh, limit: 50)
+    #expect(old == ["big": 49, "small": 9])
     #expect(notificationBody(changes(old: old, new: repoCounts(fresh))) == "big +1 (50)\nsmall -4 (5)")
 }
 

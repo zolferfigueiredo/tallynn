@@ -59,6 +59,7 @@ extension Strings {
         "quit": "Tallynn 종료",
         "refresh": "새로 고침",
         "refresh_failed": "새로 고칠 수 없음",
+        "releases_counted": "집계할 최신 릴리스",
         "reload": "목록 다시 불러오기",
         "remove": "제거",
         "remove_text": "목록에서 사라지고 더 이상 집계되지 않습니다. 언제든지 다시 추가할 수 있습니다.",
