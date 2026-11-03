@@ -48,11 +48,11 @@ extension AppDelegate {
                 let entry = add(row.repo)  // the title still serves type-select and VoiceOver
                 entry.submenu = versionsMenu(releases[row.repo] ?? [], repo: row.repo)
                 entry.view = CountRow(name: row.repo, latest: row.latest == row.top ? nil : row.latest, top: row.top,
-                                      column: column, indent: indent, arrow: entry.submenu != nil)
+                                      column: column, indent: indent)
             }
             if places.list {
                 add(tr("total_row"), enabled: false).view = CountRow(name: tr("total_row"), latest: nil, top: sum, column: column,
-                                                                     indent: indent, bold: true, arrow: false)
+                                                                     indent: indent, bold: true)
             }
             menu.addItem(.separator())
         }
@@ -97,18 +97,19 @@ extension AppDelegate {
         showImages(menu)
     }
 
-    /// A repository's releases with downloads, newest first, each with its count at the right edge. Clicking one
-    /// opens its page on GitHub, with its files.
+    /// A repository's releases with downloads, newest first, each with its count in grey on the right, the most
+    /// downloaded's in a badge as in the repository's row. Clicking one opens its page on GitHub, with its files.
     func versionsMenu(_ releases: [Release], repo: String) -> NSMenu? {
         let shown = releases.filter { $0.downloads > 0 }
-        guard !shown.isEmpty else { return nil }
+        guard let top = shown.map(\.downloads).max() else { return nil }
         let menu = NSMenu()
         let login = defaults.string(forKey: "login")
         for release in shown {
             let entry = NSMenuItem(title: release.tag, action: #selector(openRelease), keyEquivalent: "")
             entry.target = self
             entry.representedObject = releasePage(repo: repo, login: login, tag: release.tag)
-            entry.badge = NSMenuItemBadge(string: release.downloads.formatted())
+            entry.view = CountRow(name: release.tag, latest: nil, top: release.downloads, column: CountRow.badgeWidth(top),
+                                  indent: 16, badge: release.downloads == top)
             menu.addItem(entry)
         }
         return menu
@@ -155,20 +156,21 @@ extension AppDelegate {
     }
 }
 
-/// A repository's row, or TOTAL: the name, the newest release's downloads in grey right beside the badge with the most
-/// downloaded release's, then the submenu arrow. Drawn here, as macOS keeps a menu item's own title far from its badge.
-/// Every badge ends where the submenu arrows start, so TOTAL's lines up with the rest.
+/// A repository's row, TOTAL, or a release: the name, the newest release's downloads in grey right beside the badge
+/// with the most downloaded release's, then the submenu arrow. Drawn here, as macOS keeps a menu item's own title far
+/// from its badge. In a menu with submenus every badge ends where the arrows start, so TOTAL's lines up with the rest.
 final class CountRow: NSView {
     static let font = NSFont.menuFont(ofSize: 0)
     static let badgeFont = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)
     static func badgeWidth(_ count: Int) -> CGFloat { ceil(count.formatted().size(withAttributes: [.font: badgeFont]).width) + 14 }
 
-    let name: String, latest: Int?, top: Int, column: CGFloat, indent: CGFloat, bold: Bool, arrow: Bool
+    let name: String, latest: Int?, top: Int, column: CGFloat, indent: CGFloat, bold: Bool, badge: Bool
 
     /// `column` is the widest badge, so the grey counts line up on the right. `latest` is nil when it's the most
-    /// downloaded too. `indent` is where the menu's own titles start.
-    init(name: String, latest: Int?, top: Int, column: CGFloat, indent: CGFloat, bold: Bool = false, arrow: Bool) {
-        (self.name, self.latest, self.top, self.column, self.indent, self.bold, self.arrow) = (name, latest, top, column, indent, bold, arrow)
+    /// downloaded too. `indent` is where the menu's own titles start. Without `badge`, `top` is in grey, its digits
+    /// lined up with the badge's.
+    init(name: String, latest: Int?, top: Int, column: CGFloat, indent: CGFloat, bold: Bool = false, badge: Bool = true) {
+        (self.name, self.latest, self.top, self.column, self.indent, self.bold, self.badge) = (name, latest, top, column, indent, bold, badge)
         let text = name.size(withAttributes: [.font: bold ? NSFont.boldSystemFont(ofSize: Self.font.pointSize) : Self.font]).width
             + (latest.map { 24 + $0.formatted().size(withAttributes: [.font: Self.font]).width } ?? 0)
         super.init(frame: NSRect(x: 0, y: 0, width: ceil(indent + text + 24 + column + 30), height: 24))
@@ -194,28 +196,43 @@ final class CountRow: NSView {
         name.draw(at: NSPoint(x: indent, y: y), withAttributes: [.font: font, .foregroundColor: ink])
 
         var right = bounds.maxX - 16
-        if let chevron = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)?
+        if enclosingMenuItem?.menu?.items.contains(where: \.hasSubmenu) == true,
+           let chevron = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)?
             .withSymbolConfiguration(.init(pointSize: 12, weight: .bold).applying(.init(paletteColors: [ink]))) {
             right -= 3
-            if arrow {
+            if enclosingMenuItem?.hasSubmenu == true {
                 chevron.draw(in: NSRect(x: right - chevron.size.width, y: (bounds.height - chevron.size.height) / 2,
                                         width: chevron.size.width, height: chevron.size.height))
             }
             right -= chevron.size.width + 2
         }
-        let badge = NSRect(x: right - Self.badgeWidth(top), y: (bounds.height - 17) / 2, width: Self.badgeWidth(top), height: 17)
-        (lit ? NSColor.white.withAlphaComponent(0.2) : NSColor.labelColor.withAlphaComponent(0.12)).setFill()
-        NSBezierPath(roundedRect: badge, xRadius: badge.height / 2, yRadius: badge.height / 2).fill()
-        let count = top.formatted() as NSString
-        let size = count.size(withAttributes: [.font: Self.badgeFont])
-        count.draw(at: NSPoint(x: badge.midX - size.width / 2, y: badge.midY - size.height / 2),
-                   withAttributes: [.font: Self.badgeFont, .foregroundColor: ink])
+        let greyInk = lit ? ink.withAlphaComponent(0.75) : .secondaryLabelColor
+        if badge {
+            let badge = NSRect(x: right - Self.badgeWidth(top), y: (bounds.height - 17) / 2, width: Self.badgeWidth(top), height: 17)
+            (lit ? NSColor.white.withAlphaComponent(0.2) : NSColor.labelColor.withAlphaComponent(0.12)).setFill()
+            NSBezierPath(roundedRect: badge, xRadius: badge.height / 2, yRadius: badge.height / 2).fill()
+            let count = top.formatted() as NSString
+            let size = count.size(withAttributes: [.font: Self.badgeFont])
+            count.draw(at: NSPoint(x: badge.midX - size.width / 2, y: badge.midY - size.height / 2),
+                       withAttributes: [.font: Self.badgeFont, .foregroundColor: ink])
+        } else {
+            let grey = top.formatted() as NSString
+            grey.draw(at: NSPoint(x: right - 7 - grey.size(withAttributes: [.font: Self.font]).width, y: y),
+                      withAttributes: [.font: Self.font, .foregroundColor: greyInk])
+        }
 
         if let latest {
             let grey = latest.formatted() as NSString
             grey.draw(at: NSPoint(x: right - column - 6 - grey.size(withAttributes: [.font: Self.font]).width, y: y),
-                      withAttributes: [.font: Self.font, .foregroundColor: lit ? ink.withAlphaComponent(0.75) : .secondaryLabelColor])
+                      withAttributes: [.font: Self.font, .foregroundColor: greyInk])
         }
+    }
+
+    // An item with a view gets no click of its own, so a release's opens from here.
+    override func mouseUp(with event: NSEvent) {
+        guard let item = enclosingMenuItem, item.isEnabled, item.action != nil, let menu = item.menu else { return }
+        menu.cancelTracking()
+        menu.performActionForItem(at: menu.index(of: item))
     }
 }
 
