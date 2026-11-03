@@ -38,17 +38,21 @@ extension AppDelegate {
             add(tr("choose"), #selector(showSettings))
             menu.addItem(.separator())
         }
+        let login = SMAppService.mainApp.status == .enabled, docked = inDock()
         if let releases = shownReleases, !releases.isEmpty {
             let rows = menuRows(releases), sum = total(releases)
             let column = (rows.map { CountRow.badgeWidth($0.top) } + (places.list ? [CountRow.badgeWidth(sum)] : [])).max() ?? 0
+            // macOS moves every title past a checkmark column, but only while some item is ticked.
+            let indent: CGFloat = login || docked ? 30 : 16
             for row in rows {
                 let entry = add(row.repo)  // the title still serves type-select and VoiceOver
                 entry.submenu = versionsMenu(releases[row.repo] ?? [], repo: row.repo)
                 entry.view = CountRow(name: row.repo, latest: row.latest == row.top ? nil : row.latest, top: row.top,
-                                      column: column, arrow: entry.submenu != nil)
+                                      column: column, indent: indent, arrow: entry.submenu != nil)
             }
             if places.list {
-                add(tr("total_row"), enabled: false).view = CountRow(name: tr("total_row"), latest: nil, top: sum, column: column, bold: true, arrow: false)
+                add(tr("total_row"), enabled: false).view = CountRow(name: tr("total_row"), latest: nil, top: sum, column: column,
+                                                                     indent: indent, bold: true, arrow: false)
             }
             menu.addItem(.separator())
         }
@@ -63,9 +67,8 @@ extension AppDelegate {
         }
 
         // Registering from anywhere else (a build in /tmp) would point the login item at a bundle that disappears.
-        add(tr("login"), #selector(toggleLogin), on: SMAppService.mainApp.status == .enabled,
-            enabled: Bundle.main.bundlePath.hasPrefix("/Applications/"))
-        add(tr("dock"), #selector(toggleDock), on: inDock())
+        add(tr("login"), #selector(toggleLogin), on: login, enabled: Bundle.main.bundlePath.hasPrefix("/Applications/"))
+        add(tr("dock"), #selector(toggleDock), on: docked)
         menu.addItem(.separator())
         add(tr("about"), #selector(showAbout)).image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: nil)
         menu.addItem(.separator())
@@ -160,15 +163,15 @@ final class CountRow: NSView {
     static let badgeFont = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)
     static func badgeWidth(_ count: Int) -> CGFloat { ceil(count.formatted().size(withAttributes: [.font: badgeFont]).width) + 14 }
 
-    let name: String, latest: Int?, top: Int, column: CGFloat, bold: Bool, arrow: Bool
+    let name: String, latest: Int?, top: Int, column: CGFloat, indent: CGFloat, bold: Bool, arrow: Bool
 
     /// `column` is the widest badge, so the grey counts line up on the right. `latest` is nil when it's the most
-    /// downloaded too.
-    init(name: String, latest: Int?, top: Int, column: CGFloat, bold: Bool = false, arrow: Bool) {
-        (self.name, self.latest, self.top, self.column, self.bold, self.arrow) = (name, latest, top, column, bold, arrow)
+    /// downloaded too. `indent` is where the menu's own titles start.
+    init(name: String, latest: Int?, top: Int, column: CGFloat, indent: CGFloat, bold: Bool = false, arrow: Bool) {
+        (self.name, self.latest, self.top, self.column, self.indent, self.bold, self.arrow) = (name, latest, top, column, indent, bold, arrow)
         let text = name.size(withAttributes: [.font: bold ? NSFont.boldSystemFont(ofSize: Self.font.pointSize) : Self.font]).width
             + (latest.map { 24 + $0.formatted().size(withAttributes: [.font: Self.font]).width } ?? 0)
-        super.init(frame: NSRect(x: 0, y: 0, width: ceil(16 + text + 24 + column + 30), height: 24))
+        super.init(frame: NSRect(x: 0, y: 0, width: ceil(indent + text + 24 + column + 30), height: 24))
         autoresizingMask = .width  // the menu widens it to its own width
         setAccessibilityElement(true)
         setAccessibilityRole(.menuItem)
@@ -188,7 +191,7 @@ final class CountRow: NSView {
         let ink: NSColor = lit ? .selectedMenuItemTextColor : enabled ? .labelColor : .disabledControlTextColor
         let font = bold ? NSFont.boldSystemFont(ofSize: Self.font.pointSize) : Self.font
         let y = (bounds.height - font.ascender + font.descender) / 2
-        name.draw(at: NSPoint(x: 16, y: y), withAttributes: [.font: font, .foregroundColor: ink])
+        name.draw(at: NSPoint(x: indent, y: y), withAttributes: [.font: font, .foregroundColor: ink])
 
         var right = bounds.maxX - 16
         if let chevron = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)?
