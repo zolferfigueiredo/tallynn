@@ -71,8 +71,6 @@ extension Strings {
         "settings": "Réglages…",
         "sign_in_failed": "Impossible de se connecter à GitHub. Réessayez.",
         "sign_in_github": "Se connecter avec GitHub",
-        "sign_in_to_check": "Connectez-vous pour rechercher des mises à jour",
-        "sign_in_to_check_text": "Les versions de Tallynn sont dans un dépôt GitHub privé. Connectez-vous avec GitHub dans les Réglages, puis recherchez à nouveau.",
         "sign_out": "Se déconnecter",
         "sign_out_text": "Tallynn utilise la connexion de GitHub CLI, qui sera donc aussi déconnecté sur ce Mac.",
         "sign_out_title": "Se déconnecter de GitHub ?",

@@ -71,8 +71,6 @@ extension Strings {
         "settings": "Impostazioni…",
         "sign_in_failed": "Impossibile accedere a GitHub. Riprova.",
         "sign_in_github": "Accedi con GitHub",
-        "sign_in_to_check": "Accedi per cercare aggiornamenti",
-        "sign_in_to_check_text": "Le release di Tallynn sono in un repository GitHub privato. Accedi con GitHub nelle Impostazioni, poi cerca di nuovo.",
         "sign_out": "Esci",
         "sign_out_text": "Tallynn usa l’accesso di GitHub CLI, quindi anche GitHub CLI verrà disconnesso su questo Mac.",
         "sign_out_title": "Uscire da GitHub?",

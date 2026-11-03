@@ -2,51 +2,27 @@ import AppKit
 import UserNotifications
 
 let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-"
-let releasesPage = URL(string: "https://github.com/zolferfigueiredo/tallynn/releases")!
+/// Updates come from the GitHub releases that release.sh publishes, read without a sign-in.
+nonisolated let releasesPage = URL(string: "https://github.com/zolferfigueiredo/tallynn/releases")!
 
-/// The newest release as release.sh publishes it: tag v1.2.3 with Tallynn-1.2.3.dmg.
-nonisolated struct LatestRelease: Equatable, Sendable {
-    let version: String
-    let dmg: URL  // the asset's API URL, downloaded with the sign-in
+/// release.sh uploads the DMG under its version: Tallynn-1.2.3.dmg in release v1.2.3.
+nonisolated func dmgURL(_ version: String) -> URL {
+    releasesPage.appending(path: "download/v\(version)/Tallynn-\(version).dmg")
 }
 
-nonisolated private struct ReleaseInfo: Decodable {
-    nonisolated struct Asset: Decodable { let name: String; let url: URL }
-    let tagName: String
-    let assets: [Asset]
+/// The version in latest.json, `{"version": "1.2.3"}`.
+nonisolated func latestVersion(from data: Data) -> String? {
+    (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["version"] as? String
 }
 
-/// The version without the tag's "v", and its DMG. nil when the release has no DMG for that version.
-nonisolated func latestRelease(from data: Data) -> LatestRelease? {
-    guard let info: ReleaseInfo = try? decode(data) else { return nil }
-    let version = info.tagName.hasPrefix("v") ? String(info.tagName.dropFirst()) : info.tagName
-    return info.assets.first { $0.name == "Tallynn-\(version).dmg" }.map { LatestRelease(version: version, dmg: $0.url) }
-}
-
-/// The repository is private, so its releases are read with the GitHub CLI's login. Drafts and pre-releases never
-/// count as latest. nil when GitHub can't be reached or the release has no DMG.
-@concurrent nonisolated func fetchLatestRelease(token: String) async -> LatestRelease? {
-    let url = URL(string: "https://api.github.com/repos/zolferfigueiredo/tallynn/releases/latest")!
-    guard let (data, _) = try? await get(url, token: token) else { return nil }
-    return latestRelease(from: data)
-}
-
-/// GitHub answers an asset request with a redirect to a pre-signed storage link, which refuses a second credential,
-/// so the token only ever goes to api.github.com.
-nonisolated final class DropTokenOnRedirect: NSObject, URLSessionTaskDelegate, Sendable {
-    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
-                    newRequest request: URLRequest) async -> URLRequest? {
-        var request = request
-        if request.url?.host != "api.github.com" { request.setValue(nil, forHTTPHeaderField: "Authorization") }
-        return request
-    }
-}
-
-@concurrent nonisolated func downloadAsset(_ url: URL, token: String) async throws -> (URL, URLResponse) {
-    var request = URLRequest(url: url)
-    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-    request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
-    return try await session.download(for: request, delegate: DropTokenOnRedirect())
+/// The version in the newest release's latest.json, or nil when GitHub can't be reached. Drafts and pre-releases never
+/// count as latest.
+@concurrent nonisolated func latestVersion() async -> String? {
+    let request = URLRequest(url: releasesPage.appending(path: "latest/download/latest.json"),
+                             cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
+    guard let (data, response) = try? await session.data(for: request),
+          (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+    return latestVersion(from: data)
 }
 
 nonisolated func isNewer(_ remote: String, than local: String) -> Bool {
@@ -193,13 +169,13 @@ func notifyUpdate(_ version: String) async -> Bool {
 
 /// Replaces the running bundle with the one in the release's DMG. The caller relaunches.
 /// URLSession downloads carry no quarantine flag, so the new copy opens without the Gatekeeper prompt.
-func install(_ release: LatestRelease, token: String, step: (String) -> Void) async throws {
+func install(_ version: String, step: (String) -> Void) async throws {
     let files = FileManager.default
     let work = try files.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: Bundle.main.bundleURL, create: true)
     defer { try? files.removeItem(at: work) }
 
-    step(tr("downloading", ["version": release.version]))
-    let (download, response) = try await downloadAsset(release.dmg, token: token)
+    step(tr("downloading", ["version": version]))
+    let (download, response) = try await session.download(from: dmgURL(version))
     let dmg = work.appending(path: "update.dmg")
     try files.moveItem(at: download, to: dmg)
     guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw UpdateError(errorDescription: tr("download_failed")) }
@@ -224,8 +200,8 @@ func install(_ release: LatestRelease, token: String, step: (String) -> Void) as
     }
     let info = Bundle(url: fresh)?.infoDictionary
     guard info?["CFBundleIdentifier"] as? String == Bundle.main.bundleIdentifier,
-          info?["CFBundleShortVersionString"] as? String == release.version else {
-        throw UpdateError(errorDescription: tr("wrong_download", ["version": release.version]))
+          info?["CFBundleShortVersionString"] as? String == version else {
+        throw UpdateError(errorDescription: tr("wrong_download", ["version": version]))
     }
     step(tr("installing"))
     _ = try files.replaceItemAt(Bundle.main.bundleURL, withItemAt: fresh)
@@ -247,7 +223,7 @@ private nonisolated func run(_ tool: String, _ arguments: String...) async throw
 extension AppDelegate {
     @objc func autoCheck() {
         let every = TimeInterval(defaults.integer(forKey: "updateEvery"))
-        guard token != nil, updateCheckIsDue(last: defaults.object(forKey: "lastUpdateCheck") as? Date, every: every, now: .now) else { return }
+        guard updateCheckIsDue(last: defaults.object(forKey: "lastUpdateCheck") as? Date, every: every, now: .now) else { return }
         checkForUpdates(quiet: true)
     }
 
@@ -269,41 +245,37 @@ extension AppDelegate {
     /// Quiet checks only speak up when there is a new version.
     func checkForUpdates(quiet: Bool) {
         guard !checking, UpdateProgress.underway == nil else { return }
-        guard let token else {
-            if !quiet { alert(tr("sign_in_to_check"), tr("sign_in_to_check_text"), tr("ok")) }
-            return
-        }
         checking = true
         Task {
             defer { checking = false }
-            guard let latest = await fetchLatestRelease(token: token) else {
+            guard let latest = await latestVersion() else {
                 log.notice("update check failed")
                 if !quiet { alert(tr("check_failed"), tr("check_failed_text"), tr("ok")) }
                 return
             }
             defaults.set(Date.now, forKey: "lastUpdateCheck")
-            defaults.set(latest.version, forKey: "availableVersion")
-            log.notice("latest \(latest.version, privacy: .public), running \(appVersion, privacy: .public)")
-            guard isNewer(latest.version, than: appVersion) else {
+            defaults.set(latest, forKey: "availableVersion")
+            log.notice("latest \(latest, privacy: .public), running \(appVersion, privacy: .public)")
+            guard isNewer(latest, than: appVersion) else {
                 if !quiet { alert(tr("up_to_date"), tr("newest", ["version": appVersion]), tr("ok")) }
                 return
             }
-            if quiet, await notifyUpdate(latest.version) { return }
-            guard alert(tr("available", ["version": latest.version]), tr("update_question", ["version": appVersion]), tr("update_now"), tr("later")) else { return }
-            let progress = UpdateProgress(tr("updating_to", ["version": latest.version]))
+            if quiet, await notifyUpdate(latest) { return }
+            guard alert(tr("available", ["version": latest]), tr("update_question", ["version": appVersion]), tr("update_now"), tr("later")) else { return }
+            let progress = UpdateProgress(tr("updating_to", ["version": latest]))
             do {
                 guard Bundle.main.bundlePath.hasPrefix("/Applications/") else {
                     throw UpdateError(errorDescription: tr("applications_only"))
                 }
                 progress.show()
-                try await install(latest, token: token) { progress.step($0) }
-                defaults.set(latest.version, forKey: "updatedTo")
-                progress.done(tr("installed", ["version": latest.version]))
+                try await install(latest) { progress.step($0) }
+                defaults.set(latest, forKey: "updatedTo")
+                progress.done(tr("installed", ["version": latest]))
             } catch {
                 progress.close()
                 log.error("update: \(error.localizedDescription, privacy: .public)")
                 if alert(tr("update_failed"), error.localizedDescription, tr("download"), tr("cancel")) {
-                    NSWorkspace.shared.open(releasesPage.appending(path: "tag/v\(latest.version)"))
+                    NSWorkspace.shared.open(releasesPage.appending(path: "tag/v\(latest)"))
                 }
             }
         }

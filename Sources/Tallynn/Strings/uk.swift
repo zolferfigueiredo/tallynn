@@ -71,8 +71,6 @@ extension Strings {
         "settings": "Налаштування…",
         "sign_in_failed": "Не вдалося ввійти в GitHub. Спробуйте ще раз.",
         "sign_in_github": "Увійти через GitHub",
-        "sign_in_to_check": "Увійдіть, щоб перевіряти оновлення",
-        "sign_in_to_check_text": "Випуски Tallynn зберігаються в приватному репозиторії GitHub. Увійдіть через GitHub у налаштуваннях і перевірте знову.",
         "sign_out": "Вийти",
         "sign_out_text": "Tallynn використовує вхід GitHub CLI, тож GitHub CLI на цьому Mac теж вийде з облікового запису.",
         "sign_out_title": "Вийти з GitHub?",

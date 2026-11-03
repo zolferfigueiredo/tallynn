@@ -71,8 +71,6 @@ extension Strings {
         "settings": "설정…",
         "sign_in_failed": "GitHub에 로그인할 수 없습니다. 다시 시도하세요.",
         "sign_in_github": "GitHub로 로그인",
-        "sign_in_to_check": "업데이트를 확인하려면 로그인하세요",
-        "sign_in_to_check_text": "Tallynn의 릴리스는 비공개 GitHub 저장소에 있습니다. 설정에서 GitHub로 로그인한 후 다시 확인하세요.",
         "sign_out": "로그아웃",
         "sign_out_text": "Tallynn은 GitHub CLI의 로그인을 사용하므로, 이 Mac의 GitHub CLI에서도 로그아웃됩니다.",
         "sign_out_title": "GitHub에서 로그아웃할까요?",

@@ -71,8 +71,6 @@ extension Strings {
         "settings": "Einstellungen…",
         "sign_in_failed": "Anmeldung bei GitHub fehlgeschlagen. Versuche es erneut.",
         "sign_in_github": "Mit GitHub anmelden",
-        "sign_in_to_check": "Zum Suchen nach Updates anmelden",
-        "sign_in_to_check_text": "Die Releases von Tallynn liegen in einem privaten GitHub-Repository. Melde dich in den Einstellungen mit GitHub an und suche dann erneut.",
         "sign_out": "Abmelden",
         "sign_out_text": "Tallynn nutzt die Anmeldung der GitHub CLI, daher wird auch die GitHub CLI auf diesem Mac abgemeldet.",
         "sign_out_title": "Von GitHub abmelden?",
