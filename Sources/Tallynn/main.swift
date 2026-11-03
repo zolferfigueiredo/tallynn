@@ -142,7 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let shown = shownRepos
             let releases = keepingLast(fetched.filter { shown.contains($0.key) }, previous: self.releases)
             let fresh = repoCounts(releases)
-            let found = changes(old: counts.map { withoutPushedOut($0, previous: self.releases, fresh: releases, limit: releaseLimit) }, new: fresh)
+            let found = changes(previous: shownReleases, fresh: releases)
             defaults.set(fresh, forKey: "counts")
             defaults.set(try? JSONEncoder().encode(releases), forKey: "releases")
             defaults.set(Date.now, forKey: "lastRefresh")
