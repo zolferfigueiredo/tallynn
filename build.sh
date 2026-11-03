@@ -1,8 +1,10 @@
 #!/bin/bash
 # Runs the tests, builds a universal dist/dmg/Tallynn.app and writes dist/Tallynn-<version>.dmg.
+# `./build.sh app` stops at the unsigned dist/dmg/Tallynn.app, and `./build.sh dmg` signs that app and makes the DMG.
 # Every intermediate (SwiftPM build, caches, module cache, TMPDIR) lives in one /tmp dir deleted on exit.
 set -euo pipefail
 cd "$(dirname "$0")"
+MODE=${1:-all}
 
 VERSION=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' Info.plist)
 DMG="dist/Tallynn-$VERSION.dmg"
@@ -16,6 +18,7 @@ SWIFT_OPTS=(--scratch-path "$WORK/build" --cache-path "$WORK/cache" --config-pat
 RELEASE_OPTS=(-c release --arch arm64 --arch x86_64)
 APP=dist/dmg/Tallynn.app
 
+if [ "$MODE" != dmg ]; then
 swift test "${SWIFT_OPTS[@]}"
 swift build "${RELEASE_OPTS[@]}" "${SWIFT_OPTS[@]}"
 BIN=$(swift build "${RELEASE_OPTS[@]}" "${SWIFT_OPTS[@]}" --show-bin-path)
@@ -31,6 +34,9 @@ tiffutil -cathidpicheck "$WORK/art/menubar.png" "$WORK/art/menubar@2x.png" -out 
 swift -module-cache-path "$WORK/modules" Icon/make-dmg-background.swift "$WORK/bg"
 tiffutil -cathidpicheck "$WORK/bg/background.png" "$WORK/bg/background@2x.png" \
     -out "$APP/Contents/Resources/dmg-background.tiff"
+fi
+[ "$MODE" != app ] || exit 0
+[ -d "$APP" ] || { echo "$APP is missing: run ./build.sh app first." >&2; exit 1; }
 
 # Notarization requires the hardened runtime and a secure timestamp. Without SIGN_ID the app is signed ad hoc.
 codesign --force --options runtime ${SIGN_ID:+--timestamp} --sign "${SIGN_ID:--}" "$APP"

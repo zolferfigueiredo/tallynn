@@ -1,11 +1,13 @@
 name: Checks
-# Every pull request: the scripts, the tests and the release build with warnings as errors, and a change to the app
-# has to raise its version, or merging it releases nothing (release.sh skips a version already released). Like the
-# release, it runs on the self-hosted runner on z's Mac: the repository is private, and GitHub's Macs bill minutes.
+# Every pull request and push to main, on GitHub's Mac: the scripts, the tests and the release build with warnings as
+# errors. A change to the app has to raise its version, or merging it releases nothing (release.sh skips a version
+# already released), and the cask has to install that version.
 on:
   pull_request:
+  push:
+    branches: [main]
 
-# A newer push to the same pull request replaces the run.
+# A newer push to the same branch replaces the run.
 concurrency:
   group: checks-${{ github.ref }}
   cancel-in-progress: true
@@ -16,24 +18,22 @@ permissions:
 jobs:
   checks:
     name: Build, test and version
-    runs-on: [self-hosted, macOS, release]
+    # Package.swift needs Swift 6.2, which ships with Xcode 26.
+    runs-on: macos-26
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0  # the version check compares with the base branch
-      - run: shellcheck build.sh release.sh run.sh dmg/layout.sh .githooks/pre-commit
-      # Built in a fresh folder each run, like build.sh, so no other project's module cache gets in.
-      - name: Tests and the release build, any warning an error
+      - name: Shellcheck the scripts
         run: |
-          work=$(mktemp -d /tmp/tallynn-ci.XXXXXX)
-          trap 'rm -rf "$work"' EXIT
-          export TMPDIR="$work/tmp" SWIFTPM_MODULECACHE_OVERRIDE="$work/modules" CLANG_MODULE_CACHE_PATH="$work/modules"
-          mkdir -p "$TMPDIR"
-          opts=(--scratch-path "$work/build" --cache-path "$work/cache" --config-path "$work/config" --security-path "$work/security" --manifest-cache none)
-          swift test -Xswiftc -warnings-as-errors "${opts[@]}"
-          swift build -c release -Xswiftc -warnings-as-errors "${opts[@]}"
+          command -v shellcheck >/dev/null || HOMEBREW_NO_AUTO_UPDATE=1 brew install shellcheck
+          shellcheck build.sh release.sh run.sh dmg/layout.sh .githooks/pre-commit
+      # Any compiler warning fails the run.
+      - run: swift test -Xswiftc -warnings-as-errors
+      - run: swift build -c release -Xswiftc -warnings-as-errors
       - name: A change to the app raises its version
+        if: github.event_name == 'pull_request'
         run: |
           base=origin/${{ github.base_ref }}
           if git diff --quiet "$base"...HEAD -- Sources Package.swift Info.plist Icon; then echo "The app is unchanged."; exit 0; fi
@@ -44,3 +44,11 @@ jobs:
             exit 1
           fi
           echo "$old -> $new"
+      - name: The cask installs this version
+        run: |
+          app=$(sed -n '/CFBundleShortVersionString/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' Info.plist)
+          cask=$(sed -n 's/^  version "\(.*\)"$/\1/p' Casks/tallynn.rb)
+          if [ "$cask" != "$app" ]; then
+            echo "::error file=Casks/tallynn.rb::version has to be the app's, $app (it is $cask)."
+            exit 1
+          fi
