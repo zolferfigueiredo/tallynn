@@ -44,7 +44,21 @@ nonisolated func keepingLast(_ fetched: [String: [Release]], previous: [String: 
     Dictionary(uniqueKeysWithValues: fetched.map { repo, releases in (repo, releases.isEmpty ? previous[repo] ?? [] : releases) })
 }
 
-nonisolated func total(_ counts: Counts) -> Int { counts.values.reduce(0, +) }
+/// Each repository's most downloaded release, added up.
+nonisolated func total(_ releases: [String: [Release]]) -> Int {
+    releases.values.reduce(0) { $0 + ($1.map(\.downloads).max() ?? 0) }
+}
+
+/// The last counts without the releases a newer one pushed out of the newest `limit`, so those aren't a drop. A
+/// release deleted from a repository with that many goes unnoticed the same way.
+nonisolated func withoutPushedOut(_ old: Counts, previous: [String: [Release]], fresh: [String: [Release]], limit: Int) -> Counts {
+    var old = old
+    for (repo, releases) in fresh where releases.count == limit && old[repo] != nil {
+        let tags = Set(releases.map(\.tag))
+        old[repo] = (previous[repo] ?? []).filter { tags.contains($0.tag) }.reduce(0) { $0 + $1.downloads }
+    }
+    return old
+}
 
 /// A repository with no saved count is a baseline: just ticked, or the first refresh after signing in. Its next
 /// change is notified. One no longer shown is left out.
@@ -61,10 +75,11 @@ nonisolated func notificationBody(_ changes: [Change]) -> String {
         .joined(separator: "\n")
 }
 
-/// The shown repositories, alphabetically, as Finder sorts names.
-nonisolated func menuRows(_ counts: Counts) -> [(repo: String, count: Int)] {
-    counts.sorted { $0.key.localizedStandardCompare($1.key) == .orderedAscending }
-        .map { (repo: $0.key, count: $0.value) }
+/// The shown repositories, alphabetically as Finder sorts names, each with its newest release's downloads and its most
+/// downloaded release's.
+nonisolated func menuRows(_ releases: [String: [Release]]) -> [(repo: String, latest: Int, top: Int)] {
+    releases.sorted { $0.key.localizedStandardCompare($1.key) == .orderedAscending }
+        .map { (repo: $0.key, latest: $0.value.first?.downloads ?? 0, top: $0.value.map(\.downloads).max() ?? 0) }
 }
 
 /// The repositories that can be shown: no forks, sorted as Finder sorts names.
@@ -79,7 +94,9 @@ nonisolated func tickedFirst(_ repos: [Repo], shown: Set<String>) -> [Repo] {
 }
 
 /// Before repositories could be picked, every one with downloads was shown, so an upgrade starts with those ticked.
-nonisolated func migratedShownRepos(_ counts: Counts?) -> [String] { menuRows((counts ?? [:]).filter { $0.value > 0 }).map(\.repo) }
+nonisolated func migratedShownRepos(_ counts: Counts?) -> [String] {
+    (counts ?? [:]).filter { $0.value > 0 }.keys.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+}
 
 /// Added repositories are keyed by "owner/repo", the user's own by their name, which has no "/".
 nonisolated func isAdded(_ repo: String) -> Bool { repo.contains("/") }

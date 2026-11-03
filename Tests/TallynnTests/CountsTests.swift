@@ -60,8 +60,19 @@ import Testing
                                                        "weej": [Release(tag: "v1", downloads: 28)], "newapp": []])
 }
 
-@Test func totalOfRepositories() {
-    #expect(total(["theej": 361, "weej": 16, "wrecktangle": 34]) == 411)
+@Test func totalAddsUpEachRepositorysMostDownloadedRelease() {
+    let releases = ["theej": [Release(tag: "v2", downloads: 0), Release(tag: "v1", downloads: 178)],
+                    "weej": [Release(tag: "v1", downloads: 29), Release(tag: "v0", downloads: 3)], "new": []]
+    #expect(total(releases) == 207)
+}
+
+@Test func aReleasePushedOutOfTheNewest50IsntADrop() {
+    let tags = (1...51).reversed().map { Release(tag: "v\($0)", downloads: 1) }
+    let previous = ["big": Array(tags.dropFirst()), "small": [Release(tag: "v2", downloads: 5), Release(tag: "v1", downloads: 4)]]
+    let fresh = ["big": Array(tags.dropLast()), "small": [Release(tag: "v2", downloads: 5)]]
+    let old = withoutPushedOut(repoCounts(previous), previous: previous, fresh: fresh, limit: 50)
+    #expect(old == ["big": 49, "small": 9])
+    #expect(notificationBody(changes(old: old, new: repoCounts(fresh))) == "big +1 (50)\nsmall -4 (5)")
 }
 
 @Test func firstRefreshIsABaseline() {
@@ -100,9 +111,16 @@ import Testing
 }
 
 @Test func menuShowsZerosAndSortsAlphabetically() {
-    let rows = menuRows(["theej": 361, "weej": 16, "wrecktangle": 34, "claudiostat": 430, "bhbrightness": 270, "zolferfigueiredo": 0, "App2": 1, "app10": 1])
-    #expect(rows.map(\.repo) == ["App2", "app10", "bhbrightness", "claudiostat", "theej", "weej", "wrecktangle", "zolferfigueiredo"])
-    #expect(rows.last?.count == 0)
+    let one = [Release(tag: "v1", downloads: 1)]
+    let rows = menuRows(["theej": one, "weej": one, "bhbrightness": one, "zolferfigueiredo": [], "App2": one, "app10": one])
+    #expect(rows.map(\.repo) == ["App2", "app10", "bhbrightness", "theej", "weej", "zolferfigueiredo"])
+    #expect(rows.last.map { [$0.latest, $0.top] } == [0, 0])
+}
+
+@Test func rowHasTheNewestAndTheMostDownloadedRelease() {
+    let rows = menuRows(["theej": [Release(tag: "v2.7.0", downloads: 0), Release(tag: "v2.2.3", downloads: 178), Release(tag: "v1", downloads: 9)],
+                         "weej": [Release(tag: "v2.5.0", downloads: 29), Release(tag: "v2.4.0", downloads: 3)]])
+    #expect(rows.map { [$0.latest, $0.top] } == [[0, 178], [29, 29]])
 }
 
 @Test func tickedRepositoriesComeFirst() throws {

@@ -59,6 +59,7 @@ extension Strings {
         "quit": "退出 Tallynn",
         "refresh": "刷新",
         "refresh_failed": "无法刷新",
+        "releases_counted": "统计的最新版本数",
         "reload": "重新载入列表",
         "remove": "移除",
         "remove_text": "它会从列表中移除，不再计数。你可以随时再次添加。",

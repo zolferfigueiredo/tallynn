@@ -59,6 +59,7 @@ extension Strings {
         "quit": "Salir de Tallynn",
         "refresh": "Actualizar",
         "refresh_failed": "No se pudo actualizar",
+        "releases_counted": "Versiones más recientes contadas",
         "reload": "Volver a cargar la lista",
         "remove": "Quitar",
         "remove_text": "Sale de la lista y deja de contarse. Puedes volver a añadirlo cuando quieras.",
