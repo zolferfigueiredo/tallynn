@@ -12,14 +12,17 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/zolferfigueiredo/tallynn/releases/latest"><img src="https://img.shields.io/github/v/release/zolferfigueiredo/tallynn" alt="Latest release"></a>
   <a href="https://www.swift.org"><img src="https://img.shields.io/badge/Swift-6.2-orange" alt="Swift 6.2"></a>
   <img src="https://img.shields.io/badge/Platform-macOS%2026%2B-blue" alt="macOS 26 or later">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow" alt="MIT license"></a>
-  <img src="https://img.shields.io/badge/GitHub_Actions-%240-brightgreen" alt="GitHub Actions: $0">
+  <a href="https://github.com/zolferfigueiredo/tallynn/actions/workflows/ci.yml"><img src="https://github.com/zolferfigueiredo/tallynn/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
 </p>
 
 <p align="center">
   <a href="https://github.com/zolferfigueiredo/tallynn/releases/latest"><b>Download for macOS</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://tallynn.zolfer.com">Try the menu in your browser</a>
 </p>
 
 ## Install
@@ -28,6 +31,13 @@
 2. Open Tallynn. It's signed and notarized by Apple, so macOS only asks you to confirm the first time.
 3. Settings opens on General. Click **Sign in with GitHub**: github.com opens with a one-time code already on your clipboard, you paste it and approve. If the GitHub CLI is already signed in, Tallynn uses that login straight away. To count only other people's public repositories, skip signing in and add them under Repositories.
 4. Tick the repositories to count. The total appears in the menu bar, and each repository in the menu with its most downloaded and newest release.
+
+Or install it with [Homebrew](https://brew.sh/):
+
+```bash
+brew tap zolferfigueiredo/tallynn https://github.com/zolferfigueiredo/tallynn
+brew install --cask tallynn
+```
 
 You need:
 
@@ -57,7 +67,7 @@ Every 5, 10, 30 or 60 minutes, and when you choose **Refresh**, Tallynn asks Git
 - It asks the GitHub CLI for its token (`gh auth token`) on each refresh, so signing in, out or switching accounts in Terminal is followed straight away. **Sign in with GitHub** runs the CLI's own browser sign-in, and **Sign out** signs the CLI out on this Mac, after asking.
 - It calls GitHub's REST API: `GET /user`, `GET /user/repos` (your own repositories, forks left out), `GET /repos/{owner}/{repo}` when you add one, and each ticked repository's newest releases, in one request. Nothing is cached on disk. An added repository that's deleted or made private just isn't listed any more. Signed out, it asks about the added public repositories without a login, which GitHub allows 60 times an hour from your Mac: one request per repository each refresh, so with many of them pick a slower refresh rate.
 - It keeps only the last counts and releases, to compare with the next refresh. A refresh that fails keeps them as they were, so a repository that couldn't be read never looks like a drop, and the menu says **Couldn't refresh**.
-- **Check for updates…** asks GitHub for this repository's latest release with the same sign-in, since the repository is private, and downloads its DMG the same way. The token goes only to GitHub's API, not to the download's storage link. An update installs only if the app inside is signed by the same developer, has Tallynn's identifier and the expected version, and only into the copy in Applications. A window shows each step, and **Reopen** starts the new version.
+- **Check for updates…** reads the newest release's `latest.json` from GitHub, with no sign-in, and downloads the DMG from that release. An update installs only if the app inside is signed by the same developer, has Tallynn's identifier and the expected version, and only into the copy in Applications. A window shows each step, and **Reopen** starts the new version.
 - Only one copy runs at a time: opening another one, say from the DMG, quits the copy already running.
 
 <details>
@@ -82,17 +92,17 @@ While signed out with nothing to count, the menu says **Sign in to GitHub…** a
 ./build.sh
 ```
 
-It runs the tests, builds a universal `dist/dmg/Tallynn.app` and writes `dist/Tallynn-<version>.dmg` with the app and an Applications shortcut, in the window layout Finder saved once (`dmg/layout.sh` makes it again when the background or the icon spots change). It needs Xcode 26 (Swift 6.2 or later). It signs ad hoc unless `SIGN_ID` names your signing identity. Every intermediate goes to a folder in `/tmp` that is deleted when the script ends.
+It runs the tests, builds a universal `dist/dmg/Tallynn.app` and writes `dist/Tallynn-<version>.dmg` with the app and an Applications shortcut, in the window layout Finder saved once (`dmg/layout.sh` makes it again when the background or the icon spots change). It needs Xcode 26 (Swift 6.2 or later). It signs ad hoc unless `SIGN_ID` names your signing identity. `./build.sh app` stops at the unsigned app, and `./build.sh dmg` signs that app and makes the DMG. Every intermediate goes to a folder in `/tmp` that is deleted when the script ends.
 
 To try a change, run `./run.sh`. It builds a debug copy in `/tmp/tallynn-run`, quits any running Tallynn and opens the new one. `swift test` runs the tests alone.
 
 ## Release
 
-Raise both versions in `Info.plist` and merge to main. Every pull request runs `.github/workflows/ci.yml` on the same runner: shellcheck, the tests and the release build with warnings as errors, and a check that a change to the app raises its version, since merging one that doesn't releases nothing. `.github/workflows/release.yml` then runs `./release.sh` on the self-hosted runner on this Mac: it builds the DMG, signs it with Developer ID, notarizes it, and publishes it as a GitHub release. A version that's already released is skipped. A pull request that changes `release.sh`, `build.sh`, `Icon/` or `release.yml` runs `release.yml` as a trial: `./build.sh` only, the tests and the DMG signed ad hoc, with nothing signed with Developer ID, notarized or published.
+Raise both versions in `Info.plist` and the version in `Casks/tallynn.rb`, and merge to main. Every pull request and push to main runs `.github/workflows/ci.yml` on GitHub's Mac: shellcheck, the tests and the release build with warnings as errors, a check that a change to the app raises its version, since merging one that doesn't releases nothing, and a check that the cask installs that version.
 
-The repository is private, so nothing runs on GitHub's own machines, which bill minutes there. Self-hosted runs are free, and so are releases and their downloads. Keep the GitHub Actions budget at $0 in Settings > Billing, so a job that ever lands on GitHub's machines fails instead of billing. `./release.sh` by hand does the same without Actions.
+Every push to `main` whose version isn't released yet is released by `.github/workflows/release.yml`. GitHub's Mac runs `./release.sh build`: the tests and the unsigned app. Then the self-hosted runner on the Mac that holds the Developer ID key runs `./release.sh sign`: it makes the DMG, signs and notarizes it, and publishes it as a GitHub release with `latest.json`, which the app's update check reads. The key never leaves its keychain, and no pull request reaches that Mac: one that changes `release.sh`, `build.sh`, `Icon/` or `release.yml` runs only the build half. `./release.sh` by hand does both. While that Mac is off, the sign job waits; **Re-run failed jobs** retries it with the same build.
 
-One-time setup: a runner for this repository labelled `release` (see "Add a runner" in `~/www/actions-runner`), and the `bihan` notary profile ClaudioStat already uses.
+One-time setup on that Mac: a runner for this repository labelled `release`, run by Deploydz (see "Add a runner" in `~/www/actions-runner`), and the `bihan` notary profile ClaudioStat already uses. On GitHub, Settings > Actions > General > Fork pull request workflows is set to "Require approval for all external contributors".
 
 The plan lives in `openspec/`: see `openspec/changes/` for the proposals, specs, designs and tasks.
 

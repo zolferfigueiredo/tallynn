@@ -1,0 +1,31 @@
+name: Bug report
+description: Something doesn't work as it should
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: What you expected, what you got instead, and a screenshot if it helps.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the menu
+        2. Choose ...
+  - type: input
+    attributes:
+      label: Tallynn version
+      description: Shown in Settings, on the About tab.
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: macOS version
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: GitHub CLI version
+      description: Run `gh --version` in Terminal, if you sign in with it.
