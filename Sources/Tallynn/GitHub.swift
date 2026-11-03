@@ -96,8 +96,11 @@ nonisolated let session: URLSession = {
     return repo
 }
 
-nonisolated func releasesURL(_ fullName: String) -> URL {
-    URL(string: "https://api.github.com/repos/\(fullName)/releases?per_page=100")!
+/// A repository's newest releases: one page, so a long history costs one request too.
+@concurrent nonisolated func newestReleases(_ fullName: String, token: String?) async throws(Problem) -> [Release] {
+    let (data, _) = try await get(URL(string: "https://api.github.com/repos/\(fullName)/releases?per_page=\(releaseLimit)")!, token: token)
+    guard let releases: [GitHubRelease] = try? decode(data) else { throw .failed }
+    return releaseDownloads(releases)
 }
 
 /// The shown repositories' releases: the user's own while signed in, and added ones. Any failure fails the whole
@@ -108,12 +111,12 @@ nonisolated func releasesURL(_ fullName: String) -> URL {
         var releases: [String: [Release]] = [:]
         if let token {
             for repo in try await fetchRepos(token: token) where shown.contains(repo.name) {
-                releases[repo.name] = releaseDownloads(try await getAll(releasesURL(repo.fullName), token: token))
+                releases[repo.name] = try await newestReleases(repo.fullName, token: token)
             }
         }
         for path in shown where isAdded(path) {
             do {
-                releases[path] = releaseDownloads(try await getAll(releasesURL(path), token: token))
+                releases[path] = try await newestReleases(path, token: token)
             } catch .missing {
                 continue
             }

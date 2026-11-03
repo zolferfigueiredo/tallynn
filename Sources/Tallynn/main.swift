@@ -26,6 +26,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var releases: [String: [Release]] {
         (try? JSONDecoder().decode([String: [Release]].self, from: defaults.data(forKey: "releases") ?? Data())) ?? [:]
     }
+    /// The releases of the repositories `counts` shows, so signed out, only the added ones'.
+    var shownReleases: [String: [Release]]? {
+        counts.map { counts in releases.filter { counts[$0.key] != nil } }
+    }
     /// The repositories ticked in Settings. New ones stay hidden until ticked.
     var shownRepos: Set<String> { Set(defaults.stringArray(forKey: "shownRepos") ?? []) }
     /// Public repositories added in Settings, kept while switched off until removed. Ticked ones count too, so one
@@ -126,13 +130,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let shown = shownRepos
             let releases = keepingLast(fetched.filter { shown.contains($0.key) }, previous: self.releases)
             let fresh = repoCounts(releases)
-            let found = changes(old: counts, new: fresh)
+            let found = changes(old: counts.map { withoutPushedOut($0, previous: self.releases, fresh: releases) }, new: fresh)
             defaults.set(fresh, forKey: "counts")
             defaults.set(try? JSONEncoder().encode(releases), forKey: "releases")
             defaults.set(Date.now, forKey: "lastRefresh")
             if token != nil { problem = nil }  // signed out, the menu keeps offering to sign in
             if !found.isEmpty { notify(found) }
-            log.notice("counts: \(fresh.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }.joined(separator: ", "), privacy: .public), total \(total(fresh)), changes \(found.count)")
+            log.notice("counts: \(fresh.sorted { $0.key < $1.key }.map { "\($0.key) \($0.value)" }.joined(separator: ", "), privacy: .public), total \(total(releases)), changes \(found.count)")
         case .failure(.signedOut):
             log.notice("GitHub no longer accepts the GitHub CLI's token")
             disconnect(.signedOut)
@@ -189,7 +193,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func render() {
         guard let button = item.button else { return }
         button.image = menuBarIcon
-        let title = places.menuBar ? counts.map { total($0).formatted() } : nil
+        let title = places.menuBar ? shownReleases.map { total($0).formatted() } : nil
         button.title = title ?? ""
         button.imagePosition = title == nil ? .imageOnly : .imageLeading
     }

@@ -38,18 +38,17 @@ extension AppDelegate {
             add(tr("choose"), #selector(showSettings))
             menu.addItem(.separator())
         }
-        // Badges sit at the right edge, in the column ⌘Q and the submenu arrows use, so counts line up with the border.
-        if let counts, !counts.isEmpty {
-            let releases = releases
-            for row in menuRows(counts) {
-                let entry = add(row.repo)
-                entry.badge = NSMenuItemBadge(string: row.count.formatted())
+        if let releases = shownReleases, !releases.isEmpty {
+            let rows = menuRows(releases), sum = total(releases)
+            let column = (rows.map { CountRow.badgeWidth($0.top) } + (places.list ? [CountRow.badgeWidth(sum)] : [])).max() ?? 0
+            for row in rows {
+                let entry = add(row.repo)  // the title still serves type-select and VoiceOver
                 entry.submenu = versionsMenu(releases[row.repo] ?? [], repo: row.repo)
+                entry.view = CountRow(name: row.repo, latest: row.latest == row.top ? nil : row.latest, top: row.top,
+                                      column: column, arrow: entry.submenu != nil)
             }
             if places.list {
-                let sum = add(tr("total_row"))
-                sum.attributedTitle = NSAttributedString(string: tr("total_row"), attributes: [.font: NSFont.boldSystemFont(ofSize: NSFont.menuFont(ofSize: 0).pointSize)])
-                sum.badge = NSMenuItemBadge(string: total(counts).formatted())
+                add(tr("total_row"), enabled: false).view = CountRow(name: tr("total_row"), latest: nil, top: sum, column: column, bold: true, arrow: false)
             }
             menu.addItem(.separator())
         }
@@ -150,6 +149,70 @@ extension AppDelegate {
         alert.addButton(withTitle: tr("cancel"))
         NSApp.activate()
         if alert.runModal() == .alertFirstButtonReturn { toggleDockTile() }
+    }
+}
+
+/// A repository's row, or TOTAL: the name, the newest release's downloads in grey right beside the badge with the most
+/// downloaded release's, then the submenu arrow. Drawn here, as macOS keeps a menu item's own title far from its badge.
+/// Every badge ends where the submenu arrows start, so TOTAL's lines up with the rest.
+final class CountRow: NSView {
+    static let font = NSFont.menuFont(ofSize: 0)
+    static let badgeFont = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)
+    static func badgeWidth(_ count: Int) -> CGFloat { ceil(count.formatted().size(withAttributes: [.font: badgeFont]).width) + 14 }
+
+    let name: String, latest: Int?, top: Int, column: CGFloat, bold: Bool, arrow: Bool
+
+    /// `column` is the widest badge, so the grey counts line up on the right. `latest` is nil when it's the most
+    /// downloaded too.
+    init(name: String, latest: Int?, top: Int, column: CGFloat, bold: Bool = false, arrow: Bool) {
+        (self.name, self.latest, self.top, self.column, self.bold, self.arrow) = (name, latest, top, column, bold, arrow)
+        let text = name.size(withAttributes: [.font: bold ? NSFont.boldSystemFont(ofSize: Self.font.pointSize) : Self.font]).width
+            + (latest.map { 24 + $0.formatted().size(withAttributes: [.font: Self.font]).width } ?? 0)
+        super.init(frame: NSRect(x: 0, y: 0, width: ceil(16 + text + 24 + column + 30), height: 24))
+        autoresizingMask = .width  // the menu widens it to its own width
+        setAccessibilityElement(true)
+        setAccessibilityRole(.menuItem)
+        setAccessibilityLabel([name, latest?.formatted(), top.formatted()].compactMap { $0 }.joined(separator: ", "))
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    // A menu item with a view draws nothing of its own, its highlight included.
+    override func draw(_ dirtyRect: NSRect) {
+        let enabled = enclosingMenuItem?.isEnabled != false
+        let lit = enabled && enclosingMenuItem?.isHighlighted == true
+        if lit {
+            NSColor.selectedContentBackgroundColor.setFill()
+            NSBezierPath(roundedRect: bounds.insetBy(dx: 5, dy: 0), xRadius: 6, yRadius: 6).fill()
+        }
+        let ink: NSColor = lit ? .selectedMenuItemTextColor : enabled ? .labelColor : .disabledControlTextColor
+        let font = bold ? NSFont.boldSystemFont(ofSize: Self.font.pointSize) : Self.font
+        let y = (bounds.height - font.ascender + font.descender) / 2
+        name.draw(at: NSPoint(x: 16, y: y), withAttributes: [.font: font, .foregroundColor: ink])
+
+        var right = bounds.maxX - 16
+        if let chevron = NSImage(systemSymbolName: "chevron.right", accessibilityDescription: nil)?
+            .withSymbolConfiguration(.init(pointSize: 12, weight: .bold).applying(.init(paletteColors: [ink]))) {
+            right -= 3
+            if arrow {
+                chevron.draw(in: NSRect(x: right - chevron.size.width, y: (bounds.height - chevron.size.height) / 2,
+                                        width: chevron.size.width, height: chevron.size.height))
+            }
+            right -= chevron.size.width + 2
+        }
+        let badge = NSRect(x: right - Self.badgeWidth(top), y: (bounds.height - 17) / 2, width: Self.badgeWidth(top), height: 17)
+        (lit ? NSColor.white.withAlphaComponent(0.2) : NSColor.labelColor.withAlphaComponent(0.12)).setFill()
+        NSBezierPath(roundedRect: badge, xRadius: badge.height / 2, yRadius: badge.height / 2).fill()
+        let count = top.formatted() as NSString
+        let size = count.size(withAttributes: [.font: Self.badgeFont])
+        count.draw(at: NSPoint(x: badge.midX - size.width / 2, y: badge.midY - size.height / 2),
+                   withAttributes: [.font: Self.badgeFont, .foregroundColor: ink])
+
+        if let latest {
+            let grey = latest.formatted() as NSString
+            grey.draw(at: NSPoint(x: right - column - 6 - grey.size(withAttributes: [.font: Self.font]).width, y: y),
+                      withAttributes: [.font: Self.font, .foregroundColor: lit ? ink.withAlphaComponent(0.75) : .secondaryLabelColor])
+        }
     }
 }
 
