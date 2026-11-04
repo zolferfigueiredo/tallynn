@@ -5,6 +5,7 @@ typealias Counts = [String: Int]
 
 nonisolated struct Change: Equatable, Sendable {
     let repo: String
+    let tag: String
     let old: Int
     let new: Int
 }
@@ -49,29 +50,22 @@ nonisolated func total(_ releases: [String: [Release]]) -> Int {
     releases.values.reduce(0) { $0 + ($1.map(\.downloads).max() ?? 0) }
 }
 
-/// The last counts without the releases a newer one pushed out of the newest `limit`, so those aren't a drop. A
-/// release deleted from a repository with that many goes unnoticed the same way.
-nonisolated func withoutPushedOut(_ old: Counts, previous: [String: [Release]], fresh: [String: [Release]], limit: Int) -> Counts {
-    var old = old
-    for (repo, releases) in fresh where releases.count == limit && old[repo] != nil {
-        let tags = Set(releases.map(\.tag))
-        old[repo] = (previous[repo] ?? []).filter { tags.contains($0.tag) }.reduce(0) { $0 + $1.downloads }
+/// Each release whose downloads changed since the last refresh, newest first within each repository. A repository
+/// with no last releases is a baseline: just ticked, or the first refresh after signing in. A release that's new
+/// starts from 0, and one no longer counted (pushed out by newer ones, or deleted) isn't a change.
+nonisolated func changes(previous: [String: [Release]]?, fresh: [String: [Release]]) -> [Change] {
+    fresh.sorted { $0.key < $1.key }.flatMap { repo, releases -> [Change] in
+        guard let before = previous?[repo] else { return [] }
+        return releases.compactMap { release in
+            let old = before.first { $0.tag == release.tag }?.downloads ?? 0
+            return old == release.downloads ? nil : Change(repo: repo, tag: release.tag, old: old, new: release.downloads)
+        }
     }
-    return old
 }
 
-/// A repository with no saved count is a baseline: just ticked, or the first refresh after signing in. Its next
-/// change is notified. One no longer shown is left out.
-nonisolated func changes(old: Counts?, new: Counts) -> [Change] {
-    new.compactMap { repo, count in
-        guard let before = old?[repo], before != count else { return nil }
-        return Change(repo: repo, old: before, new: count)
-    }.sorted { $0.repo < $1.repo }
-}
-
-/// "theej +3 (364)", one line per repository.
+/// "tallynn v0.6.1 +2 (18)", one line per release, with that release's downloads.
 nonisolated func notificationBody(_ changes: [Change]) -> String {
-    changes.map { "\($0.repo) \(($0.new - $0.old).formatted(.number.sign(strategy: .always()))) (\($0.new.formatted()))" }
+    changes.map { "\($0.repo) \($0.tag) \(($0.new - $0.old).formatted(.number.sign(strategy: .always()))) (\($0.new.formatted()))" }
         .joined(separator: "\n")
 }
 

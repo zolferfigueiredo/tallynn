@@ -66,48 +66,51 @@ import Testing
     #expect(total(releases) == 207)
 }
 
-@Test func aReleasePushedOutOfTheNewest50IsntADrop() {
+@Test func eachChangedReleaseWithItsOwnDownloads() {
+    let previous = ["tallynn": [Release(tag: "v0.6.1", downloads: 16), Release(tag: "v0.6.0", downloads: 19)],
+                    "theej": [Release(tag: "v2.7.0", downloads: 7)]]
+    let fresh = ["tallynn": [Release(tag: "v0.6.1", downloads: 18), Release(tag: "v0.6.0", downloads: 20)],
+                 "theej": [Release(tag: "v2.7.0", downloads: 7)]]
+    let found = changes(previous: previous, fresh: fresh)
+    #expect(found.first == Change(repo: "tallynn", tag: "v0.6.1", old: 16, new: 18))
+    #expect(notificationBody(found) == "tallynn v0.6.1 +2 (18)\ntallynn v0.6.0 +1 (20)")
+}
+
+@Test func aNewReleaseStartsFromZero() {
+    let found = changes(previous: ["theej": [Release(tag: "v1", downloads: 9)]],
+                        fresh: ["theej": [Release(tag: "v2", downloads: 3), Release(tag: "v1", downloads: 9)]])
+    #expect(notificationBody(found) == "theej v2 +3 (3)")
+}
+
+@Test func aReleasePushedOutOrDeletedIsntADrop() {
     let tags = (1...51).reversed().map { Release(tag: "v\($0)", downloads: 1) }
     let previous = ["big": Array(tags.dropFirst()), "small": [Release(tag: "v2", downloads: 5), Release(tag: "v1", downloads: 4)]]
     let fresh = ["big": Array(tags.dropLast()), "small": [Release(tag: "v2", downloads: 5)]]
-    let old = withoutPushedOut(repoCounts(previous), previous: previous, fresh: fresh, limit: 50)
-    #expect(old == ["big": 49, "small": 9])
-    #expect(notificationBody(changes(old: old, new: repoCounts(fresh))) == "big +1 (50)\nsmall -4 (5)")
+    #expect(notificationBody(changes(previous: previous, fresh: fresh)) == "big v51 +1 (1)")
+}
+
+@Test func aDropInAReleaseIsAChange() {
+    let found = changes(previous: ["claudiostat": [Release(tag: "v1", downloads: 430)]],
+                        fresh: ["claudiostat": [Release(tag: "v1", downloads: 400)]])
+    #expect(notificationBody(found) == "claudiostat v1 -30 (400)")
 }
 
 @Test func firstRefreshIsABaseline() {
-    #expect(changes(old: nil, new: ["theej": 361]).isEmpty)
-}
-
-@Test func unchangedCountsNotifyNothing() {
-    #expect(changes(old: ["theej": 361, "weej": 16], new: ["theej": 361, "weej": 16]).isEmpty)
-}
-
-@Test func oneIncrease() {
-    let found = changes(old: ["theej": 361, "weej": 16], new: ["theej": 364, "weej": 16])
-    #expect(found == [Change(repo: "theej", old: 361, new: 364)])
-    #expect(notificationBody(found) == "theej +3 (364)")
-}
-
-@Test func severalChangesInOneBody() {
-    let found = changes(old: ["weej": 16, "theej": 361], new: ["weej": 17, "theej": 364])
-    #expect(notificationBody(found) == "theej +3 (364)\nweej +1 (17)")
-}
-
-@Test func decreaseIsAChange() {
-    #expect(notificationBody(changes(old: ["claudiostat": 430], new: ["claudiostat": 400])) == "claudiostat -30 (400)")
+    #expect(changes(previous: nil, fresh: ["theej": [Release(tag: "v1", downloads: 361)]]).isEmpty)
 }
 
 @Test func newlyShownRepositoryIsABaseline() {
-    #expect(changes(old: ["theej": 361], new: ["theej": 361, "newapp": 250]).isEmpty)
+    let one = [Release(tag: "v1", downloads: 361)]
+    #expect(changes(previous: ["theej": one], fresh: ["theej": one, "newapp": [Release(tag: "v1", downloads: 250)]]).isEmpty)
 }
 
 @Test func firstDownloadOfAShownRepository() {
-    #expect(notificationBody(changes(old: ["newapp": 0], new: ["newapp": 1])) == "newapp +1 (1)")
+    #expect(notificationBody(changes(previous: ["newapp": []], fresh: ["newapp": [Release(tag: "v1", downloads: 1)]])) == "newapp v1 +1 (1)")
 }
 
 @Test func droppedRepositoryIsSilent() {
-    #expect(changes(old: ["theej": 361, "gone": 5], new: ["theej": 361]).isEmpty)
+    let one = [Release(tag: "v1", downloads: 361)]
+    #expect(changes(previous: ["theej": one, "gone": one], fresh: ["theej": one]).isEmpty)
 }
 
 @Test func menuShowsZerosAndSortsAlphabetically() {
