@@ -13,6 +13,7 @@ extension Strings {
         "by": "Feito por",
         "cancel": "Cancelar",
         "check": "Buscar atualizações…",
+        "check_betas": "Buscar versões beta",
         "check_failed": "Não foi possível buscar atualizações",
         "check_failed_text": "Verifique sua conexão com a internet e seu login no GitHub e tente de novo.",
         "checking_signature": "Verificando a assinatura…",

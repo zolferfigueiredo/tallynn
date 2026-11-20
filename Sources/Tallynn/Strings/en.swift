@@ -13,6 +13,7 @@ extension Strings {
         "by": "Made by",
         "cancel": "Cancel",
         "check": "Check for updates…",
+        "check_betas": "Check for beta releases",
         "check_failed": "Couldn’t check for updates",
         "check_failed_text": "Check your internet connection and your GitHub sign-in, then try again.",
         "checking_signature": "Checking the signature…",

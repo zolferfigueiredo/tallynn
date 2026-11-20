@@ -13,6 +13,7 @@ extension Strings {
         "by": "制作:",
         "cancel": "キャンセル",
         "check": "アップデートを確認…",
+        "check_betas": "ベータ版を確認",
         "check_failed": "アップデートを確認できませんでした",
         "check_failed_text": "インターネット接続と GitHub のサインインを確認して、もう一度お試しください。",
         "checking_signature": "署名を確認中…",
