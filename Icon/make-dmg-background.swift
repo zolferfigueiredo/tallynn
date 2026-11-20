@@ -2,6 +2,7 @@
 // Applications link (right). Positions must match the Finder script in build.sh.
 // build.sh runs this: swift Icon/make-dmg-background.swift <output folder>
 import CoreGraphics
+import CoreText
 import Foundation
 import ImageIO
 import UniformTypeIdentifiers
@@ -34,6 +35,24 @@ func draw(scale: CGFloat) -> CGImage {
     ctx.scaleBy(x: 0.6 * width, y: 0.6 * height)
     ctx.drawRadialGradient(gradient([(rgb(255, 255, 255, 0.18), 0), (rgb(255, 255, 255, 0), 1)]),
                            startCenter: .zero, startRadius: 0, endCenter: .zero, endRadius: 1, options: [])
+    ctx.restoreGState()
+
+    // Finder draws the icons' names in black even in Dark Mode, so each sits on a light box, as in Firefox's DMG.
+    // Finder puts a 13 pt name from 268 to 280 pt, centred under its icon. Both boxes take the longer name's width.
+    let font = CTFontCreateUIFontForLanguage(.system, 13, nil)!
+    let widest = ["Tallynn.app", "Applications"].map { name in
+        CTLineGetTypographicBounds(CTLineCreateWithAttributedString(
+            NSAttributedString(string: name, attributes: [NSAttributedString.Key(kCTFontAttributeName as String): font])), nil, nil, nil)
+    }.max()!
+    let boxWidth = max(120, widest + 28)
+    ctx.saveGState()
+    ctx.setShadow(offset: CGSize(width: 0, height: 1), blur: 4, color: rgb(5, 7, 11, 0.35))
+    ctx.setFillColor(rgb(219, 236, 252, 0.92))
+    for x: CGFloat in [160, 480] {
+        ctx.addPath(CGPath(roundedRect: CGRect(x: x - boxWidth / 2, y: 262, width: boxWidth, height: 24),
+                           cornerWidth: 7, cornerHeight: 7, transform: nil))
+    }
+    ctx.fillPath()
     ctx.restoreGState()
 
     // Curved arrow over the gap between the two 128 pt icons centred at (160, 190) and (480, 190).
