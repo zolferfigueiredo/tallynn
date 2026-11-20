@@ -8,6 +8,19 @@ import Testing
     #expect(isNewer("0.2.1", than: "0.2.0"))
     #expect(!isNewer("0.2.0", than: "0.2.0"))
     #expect(!isNewer("0.1.9", than: "0.2.0"))
+    #expect(isNewer("0.7.0", than: "0.7.0-widgets-beta.1"))  // the release after its betas
+    #expect(!isNewer("0.7.0-widgets-beta.1", than: "0.7.0"))
+    #expect(isNewer("0.7.0-widgets-beta.2", than: "0.7.0-widgets-beta.1"))
+    #expect(isNewer("0.7.0-widgets-beta.10", than: "0.7.0-widgets-beta.2"))
+    #expect(!isNewer("0.6.4", than: "0.7.0-widgets-beta.1"))  // a fix on main isn't offered to the beta
+}
+
+@Test func betaFindsTheNewestRelease() {
+    let list = #"[{"tag_name": "v0.6.5"}, {"tag_name": "v0.7.0-widgets-beta.10"}, {"tag_name": "v0.7.0-widgets-beta.9"}]"#
+    #expect(newestVersion(inReleases: Data(list.utf8)) == "0.7.0-widgets-beta.10")
+    #expect(newestVersion(inReleases: Data(#"[{"tag_name": "v0.7.0-widgets-beta.3"}, {"tag_name": "v0.7.0"}]"#.utf8)) == "0.7.0")
+    #expect(newestVersion(inReleases: Data(#"{"message": "API rate limit exceeded"}"#.utf8)) == nil)
+    #expect(isBeta("0.7.0-widgets-beta.1") && !isBeta("0.7.0"))
 }
 
 @Test func checkIsDueAfterItsInterval() {

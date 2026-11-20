@@ -1,7 +1,7 @@
 import AppKit
 import UserNotifications
 
-let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-"
+nonisolated let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-"
 /// Updates come from the GitHub releases that release.sh publishes, read without a sign-in.
 nonisolated let releasesPage = URL(string: "https://github.com/zolferfigueiredo/tallynn/releases")!
 
@@ -15,18 +15,43 @@ nonisolated func latestVersion(from data: Data) -> String? {
     (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["version"] as? String
 }
 
-/// The version in the newest release's latest.json, or nil when GitHub can't be reached. Drafts and pre-releases never
-/// count as latest.
-@concurrent nonisolated func latestVersion() async -> String? {
-    let request = URLRequest(url: releasesPage.appending(path: "latest/download/latest.json"),
-                             cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
-    guard let (data, response) = try? await session.data(for: request),
-          (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
-    return latestVersion(from: data)
+/// A version with a "-" is a beta of the version before it: 0.7.0-widgets-beta.1, then 0.7.0-widgets-beta.2, then 0.7.0.
+nonisolated func isBeta(_ version: String) -> Bool { version.contains("-") }
+
+/// A beta looks for newer betas too, unless About's "Check for beta releases" is off. A release never does.
+nonisolated var checksBetas: Bool {
+    isBeta(appVersion) && (UserDefaults.standard.object(forKey: "checkBetas") as? Bool ?? true)
 }
 
+/// The version in the newest release's latest.json, or nil when GitHub can't be reached. Drafts and pre-releases never
+/// count as latest, so a beta that looks for betas reads the list of releases instead, to find the next beta as well as the release.
+@concurrent nonisolated func latestVersion() async -> String? {
+    let betas = checksBetas
+    let url = betas ? URL(string: "https://api.github.com/repos/zolferfigueiredo/tallynn/releases")!
+        : releasesPage.appending(path: "latest/download/latest.json")
+    let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
+    guard let (data, response) = try? await session.data(for: request),
+          (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+    return betas ? newestVersion(inReleases: data) : latestVersion(from: data)
+}
+
+/// The newest version in GitHub's list of releases, its betas among them: tag v0.7.0-widgets-beta.3 is 0.7.0-widgets-beta.3.
+nonisolated func newestVersion(inReleases data: Data) -> String? {
+    guard let list = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return nil }
+    return list.compactMap { ($0["tag_name"] as? String).map { String($0.dropFirst()) } }.max { isNewer($1, than: $0) }
+}
+
+/// Numeric, and past a "-" a beta, older than its release.
 nonisolated func isNewer(_ remote: String, than local: String) -> Bool {
-    remote.compare(local, options: .numeric) == .orderedDescending
+    let r = remote.split(separator: "-", maxSplits: 1, omittingEmptySubsequences: false)
+    let l = local.split(separator: "-", maxSplits: 1, omittingEmptySubsequences: false)
+    let order = r[0].compare(l[0], options: .numeric)
+    if order != .orderedSame { return order == .orderedDescending }
+    switch (r.count, l.count) {
+    case (1, 2): return true
+    case (2, 2): return r[1].compare(l[1], options: .numeric) == .orderedDescending
+    default: return false
+    }
 }
 
 /// `every` 0 means never.
